@@ -1,0 +1,30 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    {% include 'navbar.html' %}
+</head>
+<body>
+    <div class="container-fluid mt-5">
+        <div class="row  align-items-center ">
+            <div class="col-7 p-0 pe-5">
+                <h1>Track Your Crop Sensor.</h1>
+                <p>Create your channel, Connect your sensor, Monitor your soil data in visualized chart and get your crop suggestion with our AI!</p>
+                <a href="{% url "channels" %}" class="btn btn-success btn-lg">Start now</a>
+            </div>
+            <div class="col-5 p-0 ">
+                <img src="{% static 'main/home_asset.jpeg' %}" alt="Crop Sensor" class="img-fluid" style="max-width: 100; height: auto;">
+            </div>
+        </div>
+    </div> 
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB Data</title>
+</head>
+<body>
+    <h1>MongoDB Data</h1>
+    <ul>
+        {% for data in data_list %}
+            <li>IP Address: {{ data.ip }}</li>  <!-- Adjust this line based on your MongoDB document structure -->
+        {% endfor %}
+    </ul>
+</body>
+</html>

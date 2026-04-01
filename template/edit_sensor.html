@@ -1,0 +1,45 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Sensor</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+
+</head>
+<body>
+    <div class="" id="shareChartModal" tabindex="-1" aria-labelledby="shareChartModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shareChartModalLabel">Change Sensor Detail</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="shareChartForm" method="POST" action="">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="sensorName" class="form-label">Sensor Name</label>
+                            <input type="text" class="form-control" id="sensorName" name="sensorName" value="{{sensor_name}}" required>
+                        </div>
+                        <div class="mb-3" hidden>
+                            <label for="sensorType" class="form-label">Sensor Type</label>
+                            <input type="text" class="form-control" id="sensorType" name="sensorType" value="{{sensor_type}}" required>
+                        </div>
+                        <div class="mb-3" hidden>
+                            <label for="ApiKey" class="form-label">Api Key</label>
+                            <input type="text" class="form-control" id="ApiKey" name="ApiKey" value="{{API_KEY}}" required>
+                        </div>
+                        <a href="{% url 'edit_channel' channel_id=channel_id %}" type="button" class="btn btn-secondary">Close</a>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Sensor</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/edit_channel.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+</head>
+<body>
+    <div class="" id="shareChartModal" tabindex="-1" aria-labelledby="shareChartModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shareChartModalLabel">Add new sensor to this channel</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="shareChartForm" method="POST" action="">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="apiKey" class="form-label">API Key</label>
+                            <input type="text" class="form-control" id="apiKey" name="apiKey" value="{{ API_KEY }}" required>
+                        </div>
+                        <a href="{% url 'view_channel_sensor' channel_id=channel_id %}" type="button" class="btn btn-secondary">Close</a>
+                        <button type="submit" class="btn btn-primary">Connect sensor</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

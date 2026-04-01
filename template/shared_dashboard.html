@@ -1,0 +1,295 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% include 'navbar.html' %}
+</head>
+<body>
+    <div class="d-flex mt-2 border-2 mb-4">
+        <div class="me-auto">
+            <h3 class="mb-1">Dashboard: {{ channel_name }}</h3>
+            <h6>{{description}}</h6>
+        </div>
+    </div>
+    <div id="canvas" class="d-flex align-content-start flex-wrap justify-content-between">
+        <!-- Canvas elements and dropdowns will be added here dynamically -->
+        <div id="chart-spinner-container" class="text-center" style="width: 400px; height: 400px; display: none;">
+            <div class="spinner-border" role="status">
+                <span class="sr-only"></span>
+            </div>
+            <div id="chart-loading-message">Graph is being loaded...</div>
+        </div>
+    </div>
+
+    <div id="testing"></div>
+    <div id="empty_sensor">This dashboard has no sensor connected!</div>
+    
+    <div class="container mt-5 mx-0 px-0">
+        <h2 class="mb-4">Crop Recommendations</h2>
+        <table id="crop-recommendations-table" class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Crop</th>
+                    <th scope="col">Prediction Accuracy (%)</th>
+                </tr>
+            </thead>
+            <tbody id="crop-recommendations">
+                <!-- Table rows will be added here dynamically -->
+            </tbody>
+        </table>
+        <div id="table-spinner-container" class="text-center" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="sr-only"></span>
+            </div>
+            <div id="table-loading-message">Table is being loaded...</div>
+        </div>
+    </div>
+    
+    
+
+    <script>
+        // Define chart variables
+        let phChart = null, humidChart = null, tempChart = null;
+        document.addEventListener("DOMContentLoaded", function() {
+            const channelId = "{{ channel_id }}"; 
+        
+            // Show the spinners and messages before fetching data
+            if ("{{ graph_count }}" > 0) {
+                document.getElementById('chart-spinner-container').style.display = 'block';
+                document.getElementById('table-spinner-container').style.display = 'block';
+            } else {
+                document.getElementById('empty_sensor').style.display = 'block';
+            }
+        
+            fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
+                .then(response => response.json())
+                .then(data => {
+                    // Hide the spinners and messages after fetching data
+                    document.getElementById('chart-spinner-container').style.display = 'none';
+                    document.getElementById('table-spinner-container').style.display = 'none';
+        
+                    // Extract data for charts and table
+                    const phData = data.ph_values || [];
+                    const timestamps = data.timestamps || [];
+                    const humidData = data.humid_values || [];
+                    const tempData = data.temp_values || [];
+                    const timestamps_temp_humid = data.timestamps_humid_temp || [];
+        
+                    
+        
+                    // Check if there is any data to show charts
+                    if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
+                        document.getElementById('empty_sensor').style.display = 'block';
+                    } else {
+                        document.getElementById('empty_sensor').style.display = 'none';
+        
+                        // Update charts
+                        if (phData.length > 0) {
+                            const phCanvasContainer = document.createElement('div');
+                            phCanvasContainer.className = 'canvas-container';
+                            const phCanvas = document.createElement('canvas');
+                            phCanvas.id = 'phChart';
+                            phCanvas.width = 450;
+                            phCanvas.height = 400;
+                            phCanvasContainer.appendChild(phCanvas);
+                            document.getElementById('canvas').appendChild(phCanvasContainer);
+                            phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
+                            addDropdown(phCanvasContainer, phChart);
+                        }
+        
+                        if (humidData.length > 0) {
+                            const humidCanvasContainer = document.createElement('div');
+                            humidCanvasContainer.className = 'canvas-container';
+                            const humidCanvas = document.createElement('canvas');
+                            humidCanvas.id = 'humidChart';
+                            humidCanvas.width = 450;
+                            humidCanvas.height = 400;
+                            humidCanvasContainer.appendChild(humidCanvas);
+                            document.getElementById('canvas').appendChild(humidCanvasContainer);
+                            humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
+                            addDropdown(humidCanvasContainer, humidChart);
+                        }
+        
+                        if (tempData.length > 0) {
+                            const tempCanvasContainer = document.createElement('div');
+                            tempCanvasContainer.className = 'canvas-container';
+                            const tempCanvas = document.createElement('canvas');
+                            tempCanvas.id = 'tempChart';
+                            tempCanvas.width = 450;
+                            tempCanvas.height = 400;
+                            tempCanvasContainer.appendChild(tempCanvas);
+                            document.getElementById('canvas').appendChild(tempCanvasContainer);
+                            tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
+                            addDropdown(tempCanvasContainer, tempChart);
+                        }
+                    }
+        
+                    if (data.crop_recommendations && data.crop_recommendations.length > 0) {
+                        const cropRecommendations = data.crop_recommendations;
+                        const cropRecommendationsContainer = document.getElementById('crop-recommendations');
+                        cropRecommendations.forEach(recommendation => {
+                            const row = document.createElement('tr');
+                            const cropCell = document.createElement('td');
+                            cropCell.innerText = recommendation.crop;
+                            const accuracyCell = document.createElement('td');
+                            accuracyCell.innerText = recommendation.accuracy.toFixed(2);
+                            row.appendChild(cropCell);
+                            row.appendChild(accuracyCell);
+                            cropRecommendationsContainer.appendChild(row);
+                        });
+                    }
+        
+                    // Initialize WebSocket connection
+                    const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+            
+                    socket.onopen = function() {
+                        console.log('WebSocket connection established');
+                        // Send the API key to register the connection
+                        socket.send(JSON.stringify({
+                            action: 'setAPI',
+                            api: data.API  // Use the API key from the fetched data
+                        }));
+                    };
+                
+                    socket.onclose = function(event) {
+                        console.log('WebSocket connection closed', event);
+                    };
+                
+                    socket.onerror = function(error) {
+                        console.log('WebSocket error', error);
+                    };
+                
+                    socket.onmessage = function(event) {
+                        const messageData = JSON.parse(event.data);
+                        console.log('WebSocket message received', messageData);
+                
+                        if (messageData.privateMessage) {
+                            const messageContent = messageData.privateMessage;  // Directly use the object
+                            console.log('Parsed message content', messageContent);
+                
+                            if (messageContent.sensor_type === 'DHT11') {
+                                updateHumidityChart(messageContent);
+                                updateTemperatureChart(messageContent);
+                            } else if (messageContent.sensor_type === 'ph_sensor') {
+                                updatePhChart(messageContent);
+                            }
+                        }
+                    };
+                })
+                .catch(error => {
+                    console.error('Error fetching dashboard data:', error);
+                    // Hide the spinners and show error messages if needed
+                    document.getElementById('chart-spinner-container').style.display = 'none';
+                    document.getElementById('table-spinner-container').style.display = 'none';
+                });
+        });
+        
+        function createChart(canvasId, data, labels, label, type = 'line') {
+            const config = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                    }]
+                },
+                options: {
+                    elements: {
+                        line: {
+                            tension: type === 'spline' ? 0.4 : 0.1  // Set tension for spline
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 90,
+                                minRotation: 80
+                            }
+                        }
+                    },
+                    responsive: false,
+                    maintainAspectRatio: false
+                }
+            };
+            const canvas = document.getElementById(canvasId);
+            return new Chart(canvas, config);
+        }
+        
+        function addDropdown(container, chart) {
+            const dropdown = document.createElement('select');
+            dropdown.className = 'chart-type-dropdown';
+            dropdown.innerHTML = `
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+                <option value="spline">Spline</option>
+            `;
+            dropdown.addEventListener('change', function() {
+                const selectedType = dropdown.value;
+                chart.config.type = selectedType === 'spline' ? 'line' : selectedType;
+                chart.config.options.elements = chart.config.options.elements || {};
+                chart.config.options.elements.line = chart.config.options.elements.line || {};
+                if (selectedType === 'spline') {
+                    chart.config.options.elements.line.tension = 0.4;
+                } else {
+                    chart.config.options.elements.line.tension = 0.1;
+                }
+                chart.data.datasets[0].backgroundColor = selectedType === 'bar' ? 'rgba(75, 192, 192, 0.2)' : 'rgb(75, 192, 192)';
+                chart.update();
+            });
+            container.appendChild(dropdown);
+        }
+        
+        function updateHumidityChart(data) {
+            if (!humidChart) {
+                console.error('humidChart is not defined');
+                return;
+            }
+            humidChart.data.labels.push(data.timestamp);
+            humidChart.data.datasets[0].data.push(parseFloat(data.humidity_value));
+            humidChart.update();
+            console.log('Updating humidity chart with data:', data);
+        }
+        
+        function updateTemperatureChart(data) {
+            if (!tempChart) {
+                console.error('tempChart is not defined');
+                return;
+            }
+            tempChart.data.labels.push(data.timestamp);
+            tempChart.data.datasets[0].data.push(parseFloat(data.temperature_value));
+            tempChart.update();
+            console.log('Updating temperature chart with data:', data);
+        }
+        
+        function updatePhChart(data) {
+            if (!phChart) {
+                console.error('phChart is not defined');
+                return;
+            }
+            phChart.data.labels.push(data.timestamp);
+            phChart.data.datasets[0].data.push(parseFloat(data.ph_value));
+            phChart.update();
+            console.log('Updating pH chart with data:', data);
+        }        
+        
+    </script>
+    
+</body>
+</html>

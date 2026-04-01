@@ -1,0 +1,34 @@
+{% load static %} 
+<link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container-fluid px-0 py-2">
+        <a href="{% url 'home' %}"class="navbar-brand fw-bold fst-italic" href="#"><span class="logo-plant">Plant</span><span class="logo-link">Link</span></a>
+        <div class="d-flex" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link nav-item-button mx-1 py-2 px-4 {% if request.path == '/home/' %}active{% endif %}" href="{% url 'home' %}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-item-button mx-1 px-4 {% if request.path == '/mychannel/' %}active{% endif %}" href="{% url 'channels' %}">My Channel</a>
+                </li>
+                <!-- Add dropdown menu -->
+                {% if request.COOKIES.name %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link nav-item-button mx-1 px-4 dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ request.COOKIES.username }}
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="btn btn-dark btn-log mx-1 px-4 me-0 {% if request.path == '/login/' %}active{% endif %}" role="button" href="{% url 'logPlantFeed' %}">Login</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

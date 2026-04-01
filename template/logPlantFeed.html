@@ -1,0 +1,69 @@
+{% load compress %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/logPlantFeed.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+</head>
+<body>
+    <div id="login_form" class="shadow-sm">
+        <div id="space"></div>
+        <div class="mb-2 navbar-brand fw-bold fst-italic"><span class="logo-plant">Plant</span><span class="logo-link">link</span></div>
+        <div>Please login to use Plant Link</div>
+        <form id="loginForm" class="login_field mt-5" method="post"> 
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="emailInput" class="form-label">Email</label>
+                <input type="email" class="form-control" id="emailInput" name="email" placeholder="email@example.com">
+                <div id="warning_email_1" class="text-danger text-end">Please enter your email!</div>
+            </div>
+            <div class="mb-3">
+                <label for="passwordInput" class="form-label">Password</label>
+                <input type="password" class="form-control" id="passwordInput" name="password" placeholder="At least 8 characters">
+                <div id="warning_password" class="text-danger text-end">Please enter your password!</div>
+            </div>
+            <button type="submit" class="sign_in_button mt-3">Sign in</button>
+            <div id="account_warning" class="text-danger text-end" style='{% if warning_message %}display:block;{% endif %}'>Your email or password is incorrect!</div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const loginForm = document.getElementById('loginForm');
+            const emailInput = document.getElementById('emailInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const warningEmail1 = document.getElementById('warning_email_1');
+            const warningPassword = document.getElementById('warning_password');
+
+            loginForm.addEventListener('submit', function (event) {
+                if (!emailInput.value.trim()) {
+                    event.preventDefault(); // Prevent form submission
+                    warningEmail1.style.display = 'block';
+                } else {
+                    warningEmail1.style.display = 'none';
+                }    
+
+                if (!passwordInput.value.trim()) {
+                    event.preventDefault(); // Prevent form submission
+                    warningPassword.style.display = 'block';
+                } else {
+                    warningPassword.style.display = 'none';
+                }
+            });
+
+            function isValidEmail(email) {
+                // Basic email format validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+        });
+    </script>
+</body>
+</html>

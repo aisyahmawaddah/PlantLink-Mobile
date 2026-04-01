@@ -1,0 +1,22 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+    {% include 'navbar.html' %}
+</head>
+<body>
+    <div>Username: {{ request.COOKIES.username }}</div>
+    <div>Email: {{ request.COOKIES.email }}</div>
+    <div>name: {{ request.COOKIES.name }}</div>
+
+</body>
+</html>

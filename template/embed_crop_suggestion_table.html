@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Suggestion Table</title>
+    {% load static %}
+    {% load compress %}
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <style>
+        #crop-recommendations-table {
+            max-width: 500px;
+            overflow-y: auto;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container mx-0 px-0">
+        <h2>Crop Recommendations</h2>
+        <h4 class="mb-4">{{ start_date }} to {{ end_date }}</h4>
+        <table id="crop-recommendations-table" class="table table-responsive-sm table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Crop</th>
+                    <th scope="col">Prediction Accuracy (%)</th>
+                </tr>
+            </thead>
+            <tbody id="crop-recommendations">
+                <!-- Table rows will be added here dynamically -->
+            </tbody>
+        </table>
+        <div id="table-spinner-container" class="text-center" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="sr-only"></span>
+            </div>
+            <div id="table-loading-message">Table is being loaded...</div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const channelId = "{{ channel_id }}";
+            const startDate = "{{ start_date }}";
+            const endDate = "{{ end_date }}";
+        
+            fetch(`/mychannel/${channelId}/getCropRecommendationByDate/${startDate}/${endDate}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const cropRecommendationsContainer = document.getElementById('crop-recommendations');
+                    cropRecommendationsContainer.innerHTML = '';  // Clear existing rows
+
+                    data.crop_recommendations.forEach(recommendation => {
+                        const row = document.createElement('tr');
+                        const cropCell = document.createElement('td');
+                        cropCell.innerText = recommendation.crop;
+                        const accuracyCell = document.createElement('td');
+                        accuracyCell.innerText = recommendation.accuracy.toFixed(2);
+                        row.appendChild(cropCell);
+                        row.appendChild(accuracyCell);
+                        cropRecommendationsContainer.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching crop recommendations:', error);
+                });
+        });
+    </script>
+</body>
+</html>

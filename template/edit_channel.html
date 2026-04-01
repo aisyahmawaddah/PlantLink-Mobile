@@ -1,0 +1,52 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Channel</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/edit_channel.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+
+</head>
+<body>
+    <div class="" id="shareChartModal" tabindex="-1" aria-labelledby="shareChartModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shareChartModalLabel">Edit Channel</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="shareChartForm" method="POST" action="">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="channel_name" class="form-label">Channel Name</label>
+                            <input type="text" class="form-control" id="channel_name" name="channel_name" value="{{channel_name}}" required>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" placeholder="Leave a comment here" id="description" name="description" style="height: 100px">{{ description }}</textarea>
+                            <label for="description">Description</label>
+                          </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" value="{{location}}" required>
+                        </div>
+                        
+                        <label for="privacy" class="form-label">Privacy</label>
+                        <select class="form-select mb-3" id="privacy" name="privacy" aria-label="Default select example">
+                            <option value="public" {% if privacy == 'public' %} selected {% endif %}>Public</option>
+                            <option value="private" {% if privacy == 'private' %} selected {% endif %}>Private</option>
+                        </select>
+                        <a href="{% url 'channels' %}" type="button" class="btn btn-secondary">Close</a>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
