@@ -452,7 +452,7 @@ def render_embed_code(request, channel_id):
         print("Error connecting to MongoDB.")
     
 # DECLARE PLANTFEED URL HERE
-PLANTFEED_SHARING_URL="https://989b-2405-3800-8bb-a348-d1ed-f1e4-4aa7-4c15.ngrok-free.app/"
+PLANTFEED_SHARING_URL="https://d30c-2a09-bac5-55fe-18d2-00-279-9c.ngrok-free.app"
 PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"group/PlantLink-Graph-API"
 
 @csrf_exempt
@@ -466,13 +466,22 @@ def share_channel(request, channel_id):
             plantfeed_link = PLANTFEED_SHARING_API_PATH
             channel_name = channel.get('channel_name', 'Unknown Channel')
             
+            # Read plantfeed_user_id sent by Flutter
+            plantfeed_user_id = "1"
+            if request.body:
+                try:
+                    body = json.loads(request.body)
+                    plantfeed_user_id = str(body.get('plantfeed_user_id', '1'))
+                except:
+                    pass
+                
             channel_data = {
-                "userid": "1",  # Ensure this is a valid user ID in PlantFeed
-                "chart_name": f"Channel: {channel_name}",  # Use the channel name
+                "userid": plantfeed_user_id,  # now uses real user ID
+                "chart_name": f"Channel: {channel_name}",
                 "embed_link": f"http://52.64.72.29:8000/mychannel/embed/channel/{channel_id}/",
-                "chart_type": "Channel",  # Replace with actual chart type if needed
-                "start_date": "2025-01-01",  # Replace with actual start date if needed
-                "end_date": "2025-01-14"  # Replace with actual end date if needed
+                "chart_type": "Channel",
+                "start_date": "2025-01-01",
+                "end_date": "2025-01-14"
             }
 
             headers = {
