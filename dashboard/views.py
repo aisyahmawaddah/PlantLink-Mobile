@@ -452,7 +452,7 @@ def render_embed_code(request, channel_id):
         print("Error connecting to MongoDB.")
     
 # DECLARE PLANTFEED URL HERE
-PLANTFEED_SHARING_URL="https://d30c-2a09-bac5-55fe-18d2-00-279-9c.ngrok-free.app"
+PLANTFEED_SHARING_URL="https://c6f9-2a09-bac6-d69e-15f-00-23-47f.ngrok-free.app/"
 PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"group/PlantLink-Graph-API"
 
 @csrf_exempt
@@ -518,11 +518,34 @@ def share_chart(request, channel_id, chart_type, start_date, end_date, chart_nam
             return JsonResponse({"error": "Channel not found."}, status=404)
 
         plantfeed_link = PLANTFEED_SHARING_API_PATH
-        embed_link = f"http://52.64.72.29:8000/mychannel/embed/channel/{channel_id}/{chart_type}Chart/{start_date}/{end_date}/"
+        embed_link = f"http://10.0.2.2:8000/mychannel/embed/channel/{channel_id}/{chart_type}Chart/{start_date}/{end_date}/"
+
+        plantfeed_user_id = '1'
+        if request.body:
+            try:
+                body = json.loads(request.body)
+                plantfeed_user_id = str(body.get('plantfeed_user_id', '1'))
+            except:
+                pass
         
-        # Format the data according to PlantFeed's expected structure
         channel_data = {
-            "userid": "1",  # Make sure this matches a valid user ID in PlantFeed
+            "userid": plantfeed_user_id,
+            "chart_name": chart_name,
+            "chart_type": chart_type,
+            "start_date": start_date,
+            "end_date": end_date,
+            "embed_link": embed_link,
+        }
+
+        if request.body:
+            try:
+                body = json.loads(request.body)
+                plantfeed_user_id = str(body.get('plantfeed_user_id', '1'))
+            except:
+                pass
+        
+        channel_data = {
+            "userid": plantfeed_user_id,
             "chart_name": chart_name,
             "chart_type": chart_type,
             "start_date": start_date,
