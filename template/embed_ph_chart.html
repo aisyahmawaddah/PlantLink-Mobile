@@ -47,45 +47,53 @@
     </div>
 
     <script>
+        let phChart = null;
+        let phData = [];
+        let timestamps = [];
+        
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}";
             const startDate = "{{ start_date }}";
             const endDate = "{{ end_date }}";
-            let currentChartType = 'spline';
-
+        
             document.getElementById('chart-spinner-container').style.display = 'block';
             document.getElementById('download').style.display = 'none';
-
-            const url = `/mychannel/ph_data/${channelId}/${startDate}/${endDate}/`;
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('download').style.display = 'block';
-                    document.getElementById('chart-spinner-container').style.display = 'none';
-
-                    const phData = data.ph_values || [];
-                    const timestamps = data.timestamps || [];
-
-                    const phCanvasContainer = document.createElement('div');
-                    phCanvasContainer.className = 'canvas-container';
-                    const phCanvas = document.createElement('canvas');
-                    phCanvas.id = 'phChart';
-                    phCanvas.width = 450;
-                    phCanvas.height = 400;
-                    phCanvasContainer.appendChild(phCanvas);
-                    document.getElementById('canvas').appendChild(phCanvasContainer);
-
-                    createChart(phCanvas.id, phData, timestamps, 'PH Value');
-                })
-                .catch(error => {
-                    console.error('Error fetching chart data:', error);
-                    document.getElementById('chart-spinner-container').style.display = 'none';
-                });
+            const url = `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelId}/${startDate}/${endDate}/`;
+            fetch(url, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('download').style.display = 'block';
+                document.getElementById('chart-spinner-container').style.display = 'none';
+                phData = data.ph_values || [];
+                timestamps = data.timestamps || [];
+                const phCanvasContainer = document.createElement('div');
+                phCanvasContainer.className = 'canvas-container';
+                const phCanvas = document.createElement('canvas');
+                phCanvas.id = 'phChart';
+                phCanvas.width = 450;
+                phCanvas.height = 400;
+                phCanvasContainer.appendChild(phCanvas);
+                document.getElementById('canvas').appendChild(phCanvasContainer);
+                phChart = createChart('phChart', phData, timestamps, 'PH Value');
+            })
+            .catch(error => {
+                console.error('Error fetching chart data:', error);
+                document.getElementById('chart-spinner-container').style.display = 'none';
+            });
+        
+            document.getElementById('chartTypeSelect').addEventListener('change', function() {
+                if (phChart) {
+                    phChart = createChart('phChart', phData, timestamps, 'PH Value', this.value);
+                }
+            });
         });
-
+        
         function createChart(canvasId, data, labels, label, type = 'line') {
+            const chartType = type === 'spline' ? 'line' : type;
             const config = {
-                type: type,
+                type: chartType,
                 data: {
                     labels: labels,
                     datasets: [{
@@ -93,7 +101,7 @@
                         data: data,
                         fill: false,
                         borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                        backgroundColor: chartType === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
                     }]
                 },
                 options: {
@@ -103,9 +111,7 @@
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: false
-                        },
+                        y: { beginAtZero: false },
                         x: {
                             ticks: {
                                 maxRotation: 90,
@@ -124,7 +130,7 @@
             }
             return new Chart(canvas, config);
         }
-
+        
         document.getElementById('download').addEventListener('click', function() {
             const canvas = document.getElementById('phChart');
             canvas.toBlob(function(blob) {

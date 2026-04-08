@@ -48,84 +48,53 @@
     </div>
 
     <script>
-        // let temperatureChart = null;
-        // let socket = null;
-
+        let temperatureChart = null;
+        let temperatureData = [];
+        let timestamps_temp_humid = [];
+        
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}";
             const startDate = "{{ start_date }}";
             const endDate = "{{ end_date }}";
-            let currentChartType = 'spline';
-
+        
             document.getElementById('chart-spinner-container').style.display = 'block';
-            // document.getElementById('real-time').style.display = 'none';
             document.getElementById('download').style.display = 'none';
-            const url = `/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
-            fetch(url)
+            const url = `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
+            fetch(url, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            })
             .then(response => response.json())
             .then(data => {
-                    document.getElementById('download').style.display = 'block';
-                    // document.getElementById('real-time').style.display = 'block';
-                    document.getElementById('chart-spinner-container').style.display = 'none';
-                    const temperatureData = data.temp_values || [];
-                    const timestamps_temp_humid = data.timestamps_humid_temp || [];
-                    const temperatureCanvasContainer = document.createElement('div');
-                    temperatureCanvasContainer.className = 'canvas-container';
-                    const temperature = document.createElement('canvas');
-                    temperature.id = 'temperatureChart';
-                    temperature.width = 450;
-                    temperature.height = 400;
-                    temperatureCanvasContainer.appendChild(temperature);
-                    document.getElementById('canvas').appendChild(temperatureCanvasContainer);
-                    temperatureChart = createChart(temperature.id, temperatureData, timestamps_temp_humid, 'Temperature Value');
-                })
-                .catch(error => {
-                    console.error('Error fetching chart data:', error);
-                    document.getElementById('chart-spinner-container').style.display = 'none';
-                });
-
-            // document.getElementById('real-time').addEventListener('click', function() {
-            //     if (socket) {
-            //         socket.close();
-            //     }
-            //     socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
-                
-            //     socket.onopen = function() {
-            //         console.log('WebSocket connection established');
-            //         // Send the API key to register the connection
-            //         socket.send(JSON.stringify({
-            //             action: 'setAPI',
-            //             api: "{{ API }}"  // Use the API key from the fetched data
-            //         }));
-            //     };
-            
-            //     socket.onclose = function(event) {
-            //         console.log('WebSocket connection closed', event);
-            //     };
-            
-            //     socket.onerror = function(error) {
-            //         console.log('WebSocket error', error);
-            //     };
-            
-            //     socket.onmessage = function(event) {
-            //         const messageData = JSON.parse(event.data);
-            //         console.log('WebSocket message received', messageData);
-            
-            //         if (messageData.privateMessage) {
-            //             const messageContent = messageData.privateMessage;  // Directly use the object
-            //             console.log('Parsed message content', messageContent);
-            
-            //             if (messageContent.sensor_type === 'DHT11') {
-            //                 updateTemperatureChart(messageContent);
-            //             }
-            //         }
-            //     };
-            // });
+                document.getElementById('download').style.display = 'block';
+                document.getElementById('chart-spinner-container').style.display = 'none';
+                temperatureData = data.temp_values || [];
+                timestamps_temp_humid = data.timestamps_humid_temp || [];
+                const temperatureCanvasContainer = document.createElement('div');
+                temperatureCanvasContainer.className = 'canvas-container';
+                const temperature = document.createElement('canvas');
+                temperature.id = 'temperatureChart';
+                temperature.width = 450;
+                temperature.height = 400;
+                temperatureCanvasContainer.appendChild(temperature);
+                document.getElementById('canvas').appendChild(temperatureCanvasContainer);
+                temperatureChart = createChart('temperatureChart', temperatureData, timestamps_temp_humid, 'Temperature Value');
+            })
+            .catch(error => {
+                console.error('Error fetching chart data:', error);
+                document.getElementById('chart-spinner-container').style.display = 'none';
+            });
+        
+            document.getElementById('chartTypeSelect').addEventListener('change', function() {
+                if (temperatureChart) {
+                    temperatureChart = createChart('temperatureChart', temperatureData, timestamps_temp_humid, 'Temperature Value', this.value);
+                }
+            });
         });
-
+        
         function createChart(canvasId, data, labels, label, type = 'line') {
+            const chartType = type === 'spline' ? 'line' : type;
             const config = {
-                type: type,
+                type: chartType,
                 data: {
                     labels: labels,
                     datasets: [{
@@ -133,7 +102,7 @@
                         data: data,
                         fill: false,
                         borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                        backgroundColor: chartType === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
                     }]
                 },
                 options: {
@@ -143,9 +112,7 @@
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: false
-                        },
+                        y: { beginAtZero: false },
                         x: {
                             ticks: {
                                 maxRotation: 90,
@@ -164,18 +131,7 @@
             }
             return new Chart(canvas, config);
         }
-
-        // function updateTemperatureChart(data) {
-        //     if (!temperatureChart) {
-        //         console.error('temperatureChart is not defined');
-        //         return;
-        //     }
-        //     temperatureChart.data.labels.push(data.timestamp);
-        //     temperatureChart.data.datasets[0].data.push(parseFloat(data.temperature_value));
-        //     temperatureChart.update();
-        //     console.log('Updating Temperature chart with data:', data);
-        // }
-
+        
         document.getElementById('download').addEventListener('click', function() {
             const canvas = document.getElementById('temperatureChart');
             canvas.toBlob(function(blob) {

@@ -26,8 +26,9 @@ SECRET_KEY = 'django-insecure-!opbfn912_&m9qly*xf^5s-x00*999!@q=as8ima-$-cqze=p_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.100', '127.0.0.1', '10.0.2.2','localhost','52.64.72.29', '27.125.250.42']
+ALLOWED_HOSTS = ['192.168.1.100', '127.0.0.1', '10.0.2.2', 'localhost', '52.64.72.29', '27.125.250.42', 'rathe-russell-proterandrous.ngrok-free.dev']
 
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 
@@ -43,9 +44,11 @@ INSTALLED_APPS = [
     'bootstrap5',
     'rest_framework',
     'rest_framework_simplejwt', 
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
