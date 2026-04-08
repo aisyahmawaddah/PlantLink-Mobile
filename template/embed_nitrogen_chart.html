@@ -48,28 +48,27 @@
     </div>
 
     <script>
-        // let nitrogenChart = null;
-        // let socket = null;
-
+        let nitrogenChart = null;
+        let nitrogenData = [];
+        let timestamps_NPK = [];
+        
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}";
             const startDate = "{{ start_date }}";
             const endDate = "{{ end_date }}";
-            let currentChartType = 'spline';
-
+        
             document.getElementById('chart-spinner-container').style.display = 'block';
-            // document.getElementById('real-time').style.display = 'none';
             document.getElementById('download').style.display = 'none';
-            const url = `/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
-            fetch(url)
+            const url = `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
+            fetch(url, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            })
             .then(response => response.json())
             .then(data => {
                 document.getElementById('download').style.display = 'block';
-                // document.getElementById('real-time').style.display = 'block';
                 document.getElementById('chart-spinner-container').style.display = 'none';
-                const nitrogenData = data.nitrogen_values || [];
-                const timestamps_NPK = data.timestamps_NPK || [];
-
+                nitrogenData = data.nitrogen_values || [];
+                timestamps_NPK = data.timestamps_NPK || [];
                 const nitrogenCanvasContainer = document.createElement('div');
                 nitrogenCanvasContainer.className = 'canvas-container';
                 const nitrogen = document.createElement('canvas');
@@ -78,55 +77,24 @@
                 nitrogen.height = 400;
                 nitrogenCanvasContainer.appendChild(nitrogen);
                 document.getElementById('canvas').appendChild(nitrogenCanvasContainer);
-                nitrogenChart = createChart(nitrogen.id, nitrogenData, timestamps_NPK, 'Nitrogen Value');
+                nitrogenChart = createChart('nitrogenChart', nitrogenData, timestamps_NPK, 'Nitrogen Value');
             })
             .catch(error => {
                 console.error('Error fetching chart data:', error);
                 document.getElementById('chart-spinner-container').style.display = 'none';
             });
-
-            // document.getElementById('real-time').addEventListener('click', function() {
-            //     if (socket) {
-            //         socket.close();
-            //     }
-            //     socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
-                
-            //     socket.onopen = function() {
-            //         console.log('WebSocket connection established');
-            //         // Send the API key to register the connection
-            //         socket.send(JSON.stringify({
-            //             action: 'setAPI',
-            //             api: "{{ API }}"  // Use the API key from the fetched data
-            //         }));
-            //     };
-            
-            //     socket.onclose = function(event) {
-            //         console.log('WebSocket connection closed', event);
-            //     };
-            
-            //     socket.onerror = function(error) {
-            //         console.log('WebSocket error', error);
-            //     };
-            
-            //     socket.onmessage = function(event) {
-            //         const messageData = JSON.parse(event.data);
-            //         console.log('WebSocket message received', messageData);
-            
-            //         if (messageData.privateMessage) {
-            //             const messageContent = messageData.privateMessage;  // Directly use the object
-            //             console.log('Parsed message content', messageContent);
-            
-            //             if (messageContent.sensor_type === 'NPK') {
-            //                 updatenitrogenChart(messageContent);
-            //             }
-            //         }
-            //     };
-            // });
+        
+            document.getElementById('chartTypeSelect').addEventListener('change', function() {
+                if (nitrogenChart) {
+                    nitrogenChart = createChart('nitrogenChart', nitrogenData, timestamps_NPK, 'Nitrogen Value', this.value);
+                }
+            });
         });
-
+        
         function createChart(canvasId, data, labels, label, type = 'line') {
+            const chartType = type === 'spline' ? 'line' : type;
             const config = {
-                type: type,
+                type: chartType,
                 data: {
                     labels: labels,
                     datasets: [{
@@ -134,7 +102,7 @@
                         data: data,
                         fill: false,
                         borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                        backgroundColor: chartType === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
                     }]
                 },
                 options: {
@@ -144,9 +112,7 @@
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: false
-                        },
+                        y: { beginAtZero: false },
                         x: {
                             ticks: {
                                 maxRotation: 90,
@@ -165,18 +131,7 @@
             }
             return new Chart(canvas, config);
         }
-
-        // function updatenitrogenChart(data) {
-        //     if (!nitrogenChart) {
-        //         console.error('nitrogenChart is not defined');
-        //         return;
-        //     }
-        //     nitrogenChart.data.labels.push(data.timestamp);
-        //     nitrogenChart.data.datasets[0].data.push(parseFloat(data.nitrogen_value));
-        //     nitrogenChart.update();
-        //     console.log('Updating nitrogen chart with data:', data);
-        // }
-
+        
         document.getElementById('download').addEventListener('click', function() {
             const canvas = document.getElementById('nitrogenChart');
             canvas.toBlob(function(blob) {
