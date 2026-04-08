@@ -48,84 +48,55 @@
     </div>
 
     <script>
-        // let potassiumChart = null;
-        // let socket = null;
-
+        let potassiumChart = null;
+        let potassiumData = [];
+        let timestamps_NPK = [];
+        
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}";
             const startDate = "{{ start_date }}";
             const endDate = "{{ end_date }}";
-            let currentChartType = 'spline';
-
+        
             document.getElementById('chart-spinner-container').style.display = 'block';
-            // document.getElementById('real-time').style.display = 'none';
             document.getElementById('download').style.display = 'none';
-            const url = `/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
-            fetch(url)
+            const url = `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
+            fetch(url, {
+                headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            })
             .then(response => response.json())
             .then(data => {
-                    document.getElementById('download').style.display = 'block';
-                    // document.getElementById('real-time').style.display = 'block';
-                    document.getElementById('chart-spinner-container').style.display = 'none';
-                    const potassiumData = data.potassium_values || [];
-                    const timestamps_NPK = data.timestamps_NPK || [];
-                    const potassiumCanvasContainer = document.createElement('div');
-                    potassiumCanvasContainer.className = 'canvas-container';
-                    const potassium = document.createElement('canvas');
-                    potassium.id = 'potassiumChart';
-                    potassium.width = 450;
-                    potassium.height = 400;
-                    potassiumCanvasContainer.appendChild(potassium);
-                    document.getElementById('canvas').appendChild(potassiumCanvasContainer);
-                    potassiumChart = createChart(potassium.id, potassiumData, timestamps_NPK, 'Potassium Value');
-                })
-                .catch(error => {
-                    console.error('Error fetching chart data:', error);
-                    document.getElementById('chart-spinner-container').style.display = 'none';
-                });
-
-            // document.getElementById('real-time').addEventListener('click', function() {
-            //     if (socket) {
-            //         socket.close();
-            //     }
-            //     socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
-                
-            //     socket.onopen = function() {
-            //         console.log('WebSocket connection established');
-            //         // Send the API key to register the connection
-            //         socket.send(JSON.stringify({
-            //             action: 'setAPI',
-            //             api: "{{ API }}"  // Use the API key from the fetched data
-            //         }));
-            //     };
-            
-            //     socket.onclose = function(event) {
-            //         console.log('WebSocket connection closed', event);
-            //     };
-            
-            //     socket.onerror = function(error) {
-            //         console.log('WebSocket error', error);
-            //     };
-            
-            //     socket.onmessage = function(event) {
-            //         const messageData = JSON.parse(event.data);
-            //         console.log('WebSocket message received', messageData);
-            
-            //         if (messageData.privateMessage) {
-            //             const messageContent = messageData.privateMessage;  // Directly use the object
-            //             console.log('Parsed message content', messageContent);
-            
-            //             if (messageContent.sensor_type === 'DHT11') {
-            //                 updatepotassiumChart(messageContent);
-            //             }
-            //         }
-            //     };
-            // });
+                document.getElementById('download').style.display = 'block';
+                document.getElementById('chart-spinner-container').style.display = 'none';
+                potassiumData = data.potassium_values || [];
+                timestamps_NPK = data.timestamps_NPK || [];
+                const potassiumCanvasContainer = document.createElement('div');
+                potassiumCanvasContainer.className = 'canvas-container';
+                const potassium = document.createElement('canvas');
+                potassium.id = 'potassiumChart';
+                potassium.width = 450;
+                potassium.height = 400;
+                potassiumCanvasContainer.appendChild(potassium);
+                document.getElementById('canvas').appendChild(potassiumCanvasContainer);
+                potassiumChart = createChart('potassiumChart', potassiumData, timestamps_NPK, 'Potassium Value');
+            })
+            .catch(error => {
+                console.error('Error fetching chart data:', error);
+                document.getElementById('chart-spinner-container').style.display = 'none';
+            });
+        
+            document.getElementById('chartTypeSelect').addEventListener('change', function() {
+                if (potassiumChart) {
+                    potassiumChart = createChart('potassiumChart', potassiumData, timestamps_NPK, 'Potassium Value', this.value);
+                }
+            });
         });
-
+        
         function createChart(canvasId, data, labels, label, type = 'line') {
+            const chartType = type === 'spline' ? 'line' : type;  // ← add this
             const config = {
-                type: type,
+                type: chartType, 
                 data: {
                     labels: labels,
                     datasets: [{
@@ -143,9 +114,7 @@
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: false
-                        },
+                        y: { beginAtZero: false },
                         x: {
                             ticks: {
                                 maxRotation: 90,
@@ -164,18 +133,7 @@
             }
             return new Chart(canvas, config);
         }
-
-        // function updatepotassiumChart(data) {
-        //     if (!potassiumChart) {
-        //         console.error('potassiumChart is not defined');
-        //         return;
-        //     }
-        //     potassiumChart.data.labels.push(data.timestamp);
-        //     potassiumChart.data.datasets[0].data.push(parseFloat(data.potassium_value));
-        //     potassiumChart.update();
-        //     console.log('Updating potassium chart with data:', data);
-        // }
-
+        
         document.getElementById('download').addEventListener('click', function() {
             const canvas = document.getElementById('potassiumChart');
             canvas.toBlob(function(blob) {
