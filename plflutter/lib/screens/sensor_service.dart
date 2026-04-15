@@ -42,7 +42,8 @@ class SensorService {
       }),
     );
 
-    if (response.statusCode != 302) {
+    // NEW
+    if (response.statusCode != 200 && response.statusCode != 302) {
       throw Exception('Failed to edit sensor');
     }
   }
@@ -55,7 +56,8 @@ class SensorService {
     final url = Uri.parse('$baseUrl/mychannel/$channelId/delete_sensor/$sensorType/');
     final response = await http.delete(url);
 
-    if (response.statusCode != 302) {
+    // NEW
+    if (response.statusCode != 200 && response.statusCode != 302) {
       throw Exception('Failed to delete sensor');
     }
   }

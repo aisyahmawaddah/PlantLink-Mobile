@@ -16,6 +16,7 @@ import json
 import pytz
 from concurrent.futures import ThreadPoolExecutor   # add this
 import time                                         # add this (may already be there)
+from django.shortcuts import render
 
 
 def index(request):
@@ -1016,13 +1017,21 @@ def manage_sensor(request, channel_id):
                     if sensor_db is not None and sensor_collection is not None:
                         sensor_data = sensor_collection.find_one({"API_KEY": sensor_api})
                         if sensor_data:
+                            # NEW
                             sensor_list.append({
                                 "sensor_id": str(sensor_data.get('_id')),
                                 "sensor_name": sensor_data.get('sensor_name'),
                                 "sensor_type": sensor_data.get('sensor_type'),
-                                "sensor_data_count": len(sensor_data.get('sensor_data', []))
+                                "sensor_data": len(sensor_data.get('sensor_data', []))
                             })
 
+            # Return HTML for website, JSON for mobile API calls
+            if 'text/html' in request.headers.get('Accept', ''):
+                return render(request, 'conf_sensor.html', {
+                "channel_id": channel_id,
+                "sensor": sensor_list,          # was "sensors"
+                "API_KEY_VALUE": sensor_api,
+            })
             return JsonResponse({
                 "channel_id": channel_id,
                 "sensors": sensor_list,
@@ -1030,6 +1039,7 @@ def manage_sensor(request, channel_id):
             })
 
     return JsonResponse({"error": "Channel not found"}, status=404)
+
 
 # UNSET SENSOR - Clears the API key from the channel directly (New)
 @csrf_exempt
@@ -1102,12 +1112,19 @@ def delete_sensor(request, channel_id, sensor_type):
 # EDIT SENSOR - DONE (changed)
 @csrf_exempt
 def edit_sensor(request, sensor_type, sensor_id, channel_id):
+    # NEW
     if request.method == 'POST':
         print(sensor_type)
-        # Fetch form data
-        sensor_name = request.POST.get('sensorName')
-        sensor_type = request.POST.get('sensorType')
-        API_KEY = request.POST.get('ApiKey')
+        # Handle both JSON (mobile) and form data (website)
+        if request.content_type == 'application/json':
+            body = json.loads(request.body)
+            sensor_name = body.get('sensorName')
+            sensor_type = body.get('sensorType')
+            API_KEY = body.get('ApiKey')
+        else:
+            sensor_name = request.POST.get('sensorName')
+            sensor_type = request.POST.get('sensorType')
+            API_KEY = request.POST.get('ApiKey')
 
         if sensor_type == "DHT11":
             db, collection = connect_to_mongodb('sensor', 'DHT11')
@@ -1208,11 +1225,42 @@ def edit_sensor(request, sensor_type, sensor_id, channel_id):
                     "sensor_type": sensor_type,
                     "API_KEY": API_KEY,
                 }
-                # Render the edit form with channel data
                 return render(request, 'edit_sensor.html', context)
             else:
-                # Handle if channel not found in MongoDB
                 return JsonResponse({"success": False, "error": "Channel not found"})
+        elif sensor_type == "NPK":
+            db, collection = connect_to_mongodb('sensor', 'NPK')
+            _id = ObjectId(sensor_id)
+            sensor = collection.find_one({"_id": _id})
+            if sensor:
+                sensor_name = sensor.get("sensor_name", "")
+                API_KEY = sensor.get("API_KEY", '')
+                context = {
+                    "channel_id": channel_id,
+                    "sensor_name": sensor_name,
+                    "sensor_type": sensor_type,
+                    "API_KEY": API_KEY,
+                }
+                return render(request, 'edit_sensor.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Sensor not found"})
+
+        elif sensor_type == "rainfall":
+            db, collection = connect_to_mongodb('sensor', 'rainfall')
+            _id = ObjectId(sensor_id)
+            sensor = collection.find_one({"_id": _id})
+            if sensor:
+                sensor_name = sensor.get("sensor_name", "")
+                API_KEY = sensor.get("API_KEY", '')
+                context = {
+                    "channel_id": channel_id,
+                    "sensor_name": sensor_name,
+                    "sensor_type": sensor_type,
+                    "API_KEY": API_KEY,
+                }
+                return render(request, 'edit_sensor.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Sensor not found"})
 
     # Default response if request method is not 'POST'
     return JsonResponse({"success": False, "error": "Invalid request method"})

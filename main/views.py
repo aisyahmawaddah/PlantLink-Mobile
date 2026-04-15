@@ -19,7 +19,8 @@ def logPlantFeed(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         if not email or not password:
-            return render(request, 'login.html', {'error': 'Email and password required'})
+            return render(request, 'logPlantFeed.html', {'error': 'Email and password required'})
+
         try:
             pf_response = requests.post(
                 PLANTFEED_LOGIN_URL,
@@ -31,7 +32,7 @@ def logPlantFeed(request):
                 timeout=10
             )
         except requests.RequestException:
-            return render(request, 'login.html', {'error': 'Cannot reach PlantFeed. Try again.'})
+            return render(request, 'logPlantFeed.html', {'error': 'Cannot reach PlantFeed. Try again.'})
 
         if pf_response.status_code == 200:
             user_data = pf_response.json()
@@ -41,8 +42,8 @@ def logPlantFeed(request):
             response.set_cookie('email', user_data.get('email', ''))
             return response
         else:
-            return render(request, 'login.html', {'error': 'Invalid credentials'})
-    return render(request, 'login.html')
+            return render(request, 'logPlantFeed.html', {'error': 'Invalid credentials'})
+    return render(request, 'logPlantFeed.html')
 
 def logout(request):
     response = redirect('/login/')

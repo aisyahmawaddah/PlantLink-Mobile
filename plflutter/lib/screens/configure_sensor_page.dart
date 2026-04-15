@@ -216,7 +216,7 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Type: ${sensor['sensor_type']}'),
-                              Text('Data Count: ${sensor['sensor_data_count']}'),
+                              Text('Data Count: ${sensor['sensor_data']}'),
                             ],
                           ),
                           trailing: Row(

@@ -57,7 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadPlantfeedUserId() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _plantfeedUserId = prefs.getString('plantfeed_user_id') ?? '1';
+      _plantfeedUserId = prefs.getString('userid') ?? '1';
     });
   }
 
