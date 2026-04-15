@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:plflutter/deletechannel.dart';
-import 'package:plflutter/editchannel_page.dart';
-import 'package:plflutter/aziz/dashboard_page.dart';
+import 'package:plflutter/screens/deletechannel.dart';
+import 'package:plflutter/screens/editchannel_page.dart';
+import 'package:plflutter/screens/dashboard_page.dart';
 import 'fetch_channel.dart';
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;

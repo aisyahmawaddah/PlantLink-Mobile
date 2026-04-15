@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:plflutter/home_page.dart';
-import 'package:plflutter/viewchannel_page.dart';
-import 'package:plflutter/createchannel_page.dart';
-import 'package:plflutter/login_page.dart';
+import 'package:plflutter/screens/home_page.dart';
+import 'package:plflutter/screens/viewchannel_page.dart';
+import 'package:plflutter/screens/createchannel_page.dart';
+import 'package:plflutter/screens/login_page.dart';
 
 void main() {
   runApp(const MyApp());

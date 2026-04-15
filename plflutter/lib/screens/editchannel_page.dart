@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:plflutter/location_dropdown.dart'; // Import the LocationDropdown
+import 'package:plflutter/screens/location_dropdown.dart';// Import the LocationDropdown
 
 class EditChannelPage extends StatefulWidget {
   final Map<String, dynamic> channel;
