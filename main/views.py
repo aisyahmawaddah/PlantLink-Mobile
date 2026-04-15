@@ -7,83 +7,88 @@ import json
 import requests
 import jwt
 from datetime import datetime, timedelta
-from django.http import JsonResponse
 from django.conf import settings
 
-def home(request): 
-    # return render(request, 'home.html')
-    return JsonResponse({'message': 'This is the backend for the PlantLink mobile app.'})
+# ─── WEBSITE VIEWS (render HTML templates) ───────────────────────────────────
 
-@csrf_exempt
+def home(request):
+    return render(request, 'home.html')
+
 def logPlantFeed(request):
     if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        if not email or not password:
+            return render(request, 'logPlantFeed.html', {'warning_message': True})
+
         try:
-            # Parse JSON data from the request body
+            response = HttpResponseRedirect(reverse('home'))
+            response.set_cookie('username', 'hafiy')
+            response.set_cookie('email', 'hafiy@gmail.com')
+            response.set_cookie('userlevel', 'manager')
+            response.set_cookie('userid', '1')
+            response.set_cookie('name', 'Hafiy Hakimi')
+            return response
+        except Exception:
+            return render(request, 'logPlantFeed.html', {'warning_message': True})
+    else:
+        return render(request, 'logPlantFeed.html')
+
+def logout(request):
+    response = redirect('logPlantFeed')
+    response.delete_cookie('username')
+    response.delete_cookie('email')
+    response.delete_cookie('userlevel')
+    response.delete_cookie('userid')
+    response.delete_cookie('name')
+    return response
+
+def profile(request):
+    if 'username' in request.COOKIES:
+        return render(request, 'profile.html')
+    else:
+        return redirect('logPlantFeed')
+
+# ─── MOBILE API VIEWS (return JSON) ─────────────────────────────────────────
+
+JWT_SECRET_KEY = settings.SECRET_KEY
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_TIME = timedelta(hours=1)
+
+@csrf_exempt
+def api_login(request):
+    if request.method == 'POST':
+        try:
             data = json.loads(request.body)
             email = data.get('email')
             password = data.get('password')
-
             if not email or not password:
                 return JsonResponse({'error': 'Email and password are required'}, status=400)
-
-            # Direct validation for the specified credentials
             if email == 'hafiy@gmail.com' and password == 'hafiyhakimi11':
-                # Example response for valid login
                 return JsonResponse({
                     'message': 'Login successful',
                     'user': {
                         'username': 'hafiy',
                         'email': 'hafiy@gmail.com',
                         'userlevel': 'manager',
-                        'userid': 1,  
+                        'userid': 1,
                         'name': 'Hafiy Hakimi',
                     }
                 })
-            else:
-                return JsonResponse({'error': 'Invalid credentials'}, status=401)
-
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-# Define a secret key (Use Django's SECRET_KEY or a separate one for JWT)
-JWT_SECRET_KEY = settings.SECRET_KEY
-JWT_ALGORITHM = 'HS256'
-JWT_EXPIRATION_TIME = timedelta(hours=1)  # Token expires in 1 hour
-
 @csrf_exempt
-def login_view(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        email = data.get('email')
-        password = data.get('password')
-
-        # Authenticate the user
-        user = authenticate(username=email, password=password)
-        if user:
-            # Create a token
-            payload = {
-                'user_id': user.id,
-                'email': user.email,
-                'exp': datetime.now() + JWT_EXPIRATION_TIME
-            }
-            token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-            # Return the token to the client
-            return JsonResponse({'success': True, 'token': token}, status=200)
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid credentials'}, status=401)
-    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
-
-@csrf_exempt
-def logout(request):
+def api_logout(request):
     return JsonResponse({'message': 'Logged out successfully'}, status=200)
 
 @csrf_exempt
-def profile(request):
-    # validate a token or session here
+def api_profile(request):
     user_data = {
-        'username': 'hafiy',  
+        'username': 'hafiy',
         'email': 'hafiy@gmail.com',
         'userlevel': 'manager',
         'userid': 1,

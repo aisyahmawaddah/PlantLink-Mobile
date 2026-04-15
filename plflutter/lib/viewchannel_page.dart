@@ -40,9 +40,7 @@ class ViewChannel extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[200],
                   ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '');
-                  },
+                  onPressed: null,
                   child: const Text('Manage Sensors'),
                 ),
               ),

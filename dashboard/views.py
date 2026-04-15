@@ -1,8 +1,7 @@
 from datetime import datetime, time
 import os
-from django.shortcuts import render
-from django.http import HttpResponse
-from django.http import JsonResponse
+from django.shortcuts import render, redirect   # add redirect here
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import joblib
 import pandas as pd
@@ -14,8 +13,10 @@ from rest_framework import status
 from dashboard.serializers import ChannelSerializer
 from bson import ObjectId
 import json
-
 import pytz
+from concurrent.futures import ThreadPoolExecutor   # add this
+import time                                         # add this (may already be there)
+
 
 def index(request):
     return HttpResponse("dashboard")
@@ -28,6 +29,113 @@ def convert_objectid_to_str(data):
     elif isinstance(data, ObjectId):  # If it's an ObjectId, convert it to string
         return str(data)
     return data  # Return the data if it's neither a list, dict, nor ObjectId
+# ─── HELPER FUNCTIONS (for website views) ────────────────────────────────────
+
+def check_sensor(collection_name, sensor_api):
+    db, collection = connect_to_mongodb('sensor', collection_name)
+    if db is not None and collection is not None:
+        sensor = collection.find_one({"API_KEY": sensor_api})
+        return 1 if sensor else 0
+    return 0
+
+def connect_and_find(collection_name, api_key):
+    db, collection = connect_to_mongodb('sensor', collection_name)
+    if db is not None and collection is not None:
+        return collection.find_one({"API_KEY": api_key})
+    return None
+
+def get_channel_details(channel):
+    return {
+        "channel_name": channel.get('channel_name', ''),
+        "description": channel.get('description', ''),
+        "sensor": channel.get('sensor', ''),
+        "API": channel.get("API_KEY", ''),
+        "allow_api": channel.get("allow_API", ''),
+        "soil_location": channel.get("location", ''),
+        "privacy": channel.get("privacy", '')
+    }
+
+def calculate_graph_count(api_key):
+    sensor_collections = {
+        'DHT11': 2,
+        'NPK': 3,
+        'PHSensor': 1,
+        'rainfall': 1
+    }
+    graph_count = 0
+    with ThreadPoolExecutor() as executor:
+        futures = {executor.submit(connect_and_find, collection, api_key): weight
+                   for collection, weight in sensor_collections.items()}
+        for future in futures:
+            if future.result():
+                graph_count += futures[future]
+    return graph_count
+
+# ─── WEBSITE VIEWS (render HTML templates) ───────────────────────────────────
+
+def channels(request):
+    if 'username' not in request.COOKIES:
+        return redirect('logPlantFeed')
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    user_id = request.COOKIES['userid']
+    if db is not None and collection is not None:
+        channels_cursor = collection.find({"user_id": user_id})
+        channel_list = []
+        public_channel = 0
+        total_sensor = 0
+        for channel in channels_cursor:
+            sensor_count = 0
+            sensor_api = channel.get('API_KEY', '')
+            sensor_collections = ['DHT11', 'NPK', 'PHSensor', 'rainfall']
+            with ThreadPoolExecutor() as executor:
+                futures = [executor.submit(check_sensor, col, sensor_api)
+                           for col in sensor_collections]
+                for future in futures:
+                    sensor_count += future.result()
+            channel_data = {
+                'channel_id': str(channel.get('_id')),
+                'channel_name': channel.get('channel_name', ' '),
+                'description': channel.get('description', ' '),
+                'date_created': channel.get('date_created', ' '),
+                'date_modified': channel.get('date_modified', ' '),
+                'sensor_count': sensor_count,
+            }
+            total_sensor += sensor_count
+            if channel.get('privacy', '') == 'public':
+                public_channel += 1
+            channel_list.append(channel_data)
+        context = {
+            'channels': channel_list,
+            'channel_count': len(channel_list),
+            'public_channel': public_channel,
+            'total_sensor': total_sensor,
+        }
+        return render(request, 'channels.html', context)
+    return JsonResponse({"success": False, "error": "Database connection error"})
+
+def view_channel_sensor(request, channel_id):
+    if 'username' not in request.COOKIES:
+        return redirect('logPlantFeed')
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is None or collection is None:
+        return JsonResponse({"success": False, "error": "Error connecting to MongoDB"}, status=500)
+    channel = collection.find_one({"_id": _id})
+    if not channel:
+        return JsonResponse({"success": False, "error": "Document not found"}, status=404)
+    channel_details = get_channel_details(channel)
+    graph_count = calculate_graph_count(channel_details["API"])
+    context = {
+        "channel_name": channel_details["channel_name"],
+        "description": channel_details["description"],
+        "channel_id": channel_id,
+        "API": channel_details["API"],
+        "graph_count": graph_count,
+        "allow_api": channel_details["allow_api"],
+        "soil_location": channel_details["soil_location"],
+        "privacy": channel_details["privacy"],
+    }
+    return render(request, 'dashboard.html', context)
 
 def get_channel_statistics(request):
     if request.method == 'GET':
@@ -93,52 +201,65 @@ class ChannelList(APIView):
 
 @csrf_exempt
 def create_channel(request):
+    if request.method == 'GET':
+        # Website: render the create channel form
+        return render(request, 'create_channel.html')
+
     if request.method == 'POST':
-        try:
-            # Parse the incoming JSON data
-            data = json.loads(request.body)
+        content_type = request.content_type or ''
+        if 'application/json' in content_type:
+            # Mobile API: JSON body
+            try:
+                data = json.loads(request.body)
+            except Exception:
+                return JsonResponse({'error': 'Invalid JSON'}, status=400)
+            is_api = True
+        else:
+            # Website: form data
+            data = request.POST
+            is_api = False
 
-            # Extract channel details
-            channel_name = data.get('channel_name')
-            description = data.get('description')
-            location = data.get('location')
-            privacy = data.get('privacy')
+        channel_name = data.get('channel_name')
+        description = data.get('description')
+        location = data.get('location')
+        privacy = data.get('privacy')
 
-            # Validation (optional, can be improved further)
-            if not channel_name or not description or not location or not privacy:
+        if not channel_name or not description or not location or not privacy:
+            if is_api:
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
+            return render(request, 'create_channel.html', {'error': 'All fields are required'})
 
-            # Connect to MongoDB
-            db, collection = connect_to_mongodb('Channel', 'dashboard')
+        db, collection = connect_to_mongodb('Channel', 'dashboard')
+        if collection is None:
+            if is_api:
+                return JsonResponse({'error': 'Database connection failed'}, status=500)
+            return render(request, 'create_channel.html', {'error': 'Database error'})
 
-            # Check if a channel with the same name already exists
-            if collection.find_one({"channel_name": channel_name}):
-                return JsonResponse(
-                    {'error': 'A channel with this name already exists.'},
-                    status=400
-                )
+        if collection.find_one({"channel_name": channel_name}):
+            if is_api:
+                return JsonResponse({'error': 'A channel with this name already exists.'}, status=400)
+            return render(request, 'create_channel.html', {'error': 'A channel with this name already exists.'})
 
-            # Insert into MongoDB with formatted date
-            now = datetime.now()
-            formatted_date = now.strftime("%d/%m/%Y")  # Format to DD/MM/YYYY
-            channel = {
-                "channel_name": channel_name,
-                "description": description,
-                "location": location,
-                "privacy": privacy,
-                "date_created": formatted_date,
-                "date_modified": formatted_date,
-                "allow_API": "",
-                "API_KEY": "",
-                "user_id": "",
-                "sensor": []  # Initialize with an empty sensor list
-            }
-            collection.insert_one(channel)
+        now = datetime.now()
+        formatted_date = now.strftime("%d/%m/%Y")
+        channel = {
+            "channel_name": channel_name,
+            "description": description,
+            "location": location,
+            "privacy": privacy,
+            "date_created": formatted_date,
+            "date_modified": formatted_date,
+            "allow_API": "",
+            "API_KEY": "",
+            "user_id": request.COOKIES.get('userid', ''),
+            "sensor": []
+        }
+        collection.insert_one(channel)
 
+        if is_api:
             return JsonResponse({'message': 'Channel created successfully'}, status=201)
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+        from django.shortcuts import redirect
+        return redirect('channels')
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 

@@ -3,13 +3,16 @@ from . import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
-    # Existing routes
+    # Website routes (render HTML)
     path('', views.home, name='home'),
-    path('api/login/', views.logPlantFeed, name='logPlantFeed'),
-    path('api/logout/', views.logout, name='logout'),
-    path('api/profile/', views.profile, name='profile'),
+    path('login/', views.logPlantFeed, name='logPlantFeed'),
+    path('logout/', views.logout, name='logout'),
+    path('profile/', views.profile, name='profile'),
 
-    # New JWT-based API endpoints for mobile login
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Login endpoint
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # Refresh token endpoint
+    # Mobile API routes (return JSON)
+    path('api/login/', views.api_login, name='api_login'),
+    path('api/logout/', views.api_logout, name='api_logout'),
+    path('api/profile/', views.api_profile, name='api_profile'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
