@@ -600,12 +600,13 @@ def share_channel(request, channel_id):
             plantfeed_link = PLANTFEED_SHARING_API_PATH
             channel_name = channel.get('channel_name', 'Unknown Channel')
             
-            # Read plantfeed_user_id sent by Flutter
-            plantfeed_user_id = "1"
+            # Use userid from cookie (website) or request body (mobile)
+            plantfeed_user_id = request.COOKIES.get('userid', '1')
             if request.body:
                 try:
                     body = json.loads(request.body)
-                    plantfeed_user_id = str(body.get('plantfeed_user_id', '1'))
+                    if 'plantfeed_user_id' in body:
+                        plantfeed_user_id = str(body['plantfeed_user_id'])
                 except:
                     pass
                 
@@ -620,6 +621,7 @@ def share_channel(request, channel_id):
 
             headers = {
                 'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
             }
 
             try:
@@ -654,11 +656,13 @@ def share_chart(request, channel_id, chart_type, start_date, end_date, chart_nam
         plantfeed_link = PLANTFEED_SHARING_API_PATH
         embed_link = f"{PLANTLINK_BASE_URL}/mychannel/embed/channel/{channel_id}/{chart_type}Chart/{start_date}/{end_date}/"
 
-        plantfeed_user_id = '1'
+        # Use userid from cookie (website) or request body (mobile)
+        plantfeed_user_id = request.COOKIES.get('userid', '1')
         if request.body:
             try:
                 body = json.loads(request.body)
-                plantfeed_user_id = str(body.get('plantfeed_user_id', '1'))
+                if 'plantfeed_user_id' in body:
+                    plantfeed_user_id = str(body['plantfeed_user_id'])
             except:
                 pass
         
@@ -674,6 +678,7 @@ def share_chart(request, channel_id, chart_type, start_date, end_date, chart_nam
         # Add headers to ensure proper JSON content type
         headers = {
             'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
         }
 
         response = requests.post(

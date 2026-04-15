@@ -1,30 +1,27 @@
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 import json
 import requests
-from datetime import timedelta
 
-# ── PlantFeed Login URL ────────────────────────────────────────────────────
 PLANTFEED_LOGIN_URL = "https://kourtney-bottlelike-earthly.ngrok-free.dev/plantlink/Login/"
 
-# ── WEBSITE VIEWS (HTML) ───────────────────────────────────────────────────
-
+@csrf_exempt
 def home(request):
     return render(request, 'home.html')
 
+# ── WEBSITE ROUTES ────────────────────────────────────────────────────────────
+
+@csrf_exempt
 def logPlantFeed(request):
+    """Website login: calls PlantFeed, sets cookies, redirects to /mychannel/"""
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
-
         if not email or not password:
-            return render(request, 'logPlantFeed.html', {'warning_message': True})
-
+            return render(request, 'login.html', {'error': 'Email and password required'})
         try:
-            response = requests.post(
+            pf_response = requests.post(
                 PLANTFEED_LOGIN_URL,
                 json={'email': email, 'password': password},
                 headers={
@@ -33,94 +30,72 @@ def logPlantFeed(request):
                 },
                 timeout=10
             )
-            response_data = response.json()
-            user_details = response_data.get('user', {})
-            username = user_details.get('username', '')
+        except requests.RequestException:
+            return render(request, 'login.html', {'error': 'Cannot reach PlantFeed. Try again.'})
 
-            if username:
-                resp = HttpResponseRedirect(reverse('home'))
-                resp.set_cookie('username', username)
-                resp.set_cookie('email', user_details.get('email', ''))
-                resp.set_cookie('userlevel', user_details.get('userlevel', ''))
-                resp.set_cookie('userid', str(user_details.get('userid', '')))
-                resp.set_cookie('name', user_details.get('name', ''))
-                return resp
-            else:
-                return render(request, 'logPlantFeed.html', {'warning_message': True})
-
-        except Exception:
-            return render(request, 'logPlantFeed.html', {'warning_message': True})
-    else:
-        return render(request, 'logPlantFeed.html')
+        if pf_response.status_code == 200:
+            user_data = pf_response.json()
+            response = redirect('/mychannel/')
+            response.set_cookie('userid', str(user_data.get('userid', '')))
+            response.set_cookie('username', user_data.get('username', ''))
+            response.set_cookie('email', user_data.get('email', ''))
+            return response
+        else:
+            return render(request, 'login.html', {'error': 'Invalid credentials'})
+    return render(request, 'login.html')
 
 def logout(request):
-    response = redirect('logPlantFeed')
+    response = redirect('/login/')
+    response.delete_cookie('userid')
     response.delete_cookie('username')
     response.delete_cookie('email')
-    response.delete_cookie('userlevel')
-    response.delete_cookie('userid')
-    response.delete_cookie('name')
     return response
 
 def profile(request):
-    if 'username' in request.COOKIES:
-        return render(request, 'profile.html')
-    else:
-        return redirect('logPlantFeed')
+    return render(request, 'profile.html')
 
-# ── MOBILE API VIEWS (JSON) ────────────────────────────────────────────────
+# ── MOBILE API ROUTES ─────────────────────────────────────────────────────────
 
 @csrf_exempt
 def api_login(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            email = data.get('email')
-            password = data.get('password')
+    """Mobile login: calls PlantFeed, returns real user JSON"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        password = data.get('password')
+        if not email or not password:
+            return JsonResponse({'error': 'Email and password are required'}, status=400)
 
-            if not email or not password:
-                return JsonResponse({'error': 'Email and password are required'}, status=400)
+        pf_response = requests.post(
+            PLANTFEED_LOGIN_URL,
+            json={'email': email, 'password': password},
+            headers={
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            timeout=10
+        )
 
-            response = requests.post(
-                PLANTFEED_LOGIN_URL,
-                json={'email': email, 'password': password},
-                headers={
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true'
-                },
-                timeout=10
-            )
-            response_data = response.json()
-            user_details = response_data.get('user', {})
-            username = user_details.get('username', '')
+        if pf_response.status_code == 200:
+            user_data = pf_response.json()
+            return JsonResponse({'message': 'Login successful', 'user': user_data})
+        else:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
-            if username:
-                return JsonResponse({
-                    'message': 'Login successful',
-                    'user': {
-                        'username': username,
-                        'email': user_details.get('email', ''),
-                        'userlevel': user_details.get('userlevel', ''),
-                        'userid': str(user_details.get('userid', '')),
-                        'name': user_details.get('name', ''),
-                    }
-                }, status=200)
-            else:
-                return JsonResponse({'error': 'Invalid credentials'}, status=401)
-
-        except requests.exceptions.Timeout:
-            return JsonResponse({'error': 'Authentication server timed out'}, status=504)
-        except requests.exceptions.RequestException:
-            return JsonResponse({'error': 'Cannot reach authentication server'}, status=503)
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    except requests.RequestException as e:
+        return JsonResponse({'error': f'Cannot reach PlantFeed: {str(e)}'}, status=503)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
 
 @csrf_exempt
 def api_logout(request):
-    return JsonResponse({'message': 'Logged out successfully'}, status=200)
+    return JsonResponse({'message': 'Logged out successfully'})
 
 @csrf_exempt
 def api_profile(request):
-    return JsonResponse({'message': 'Profile endpoint'}, status=200)
+    userid = request.COOKIES.get('userid', '')
+    username = request.COOKIES.get('username', '')
+    email = request.COOKIES.get('email', '')
+    return JsonResponse({'user': {'userid': userid, 'username': username, 'email': email}})

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:plflutter/screens/home_page.dart';
-import 'package:plflutter/screens/viewchannel_page.dart';
-import 'package:plflutter/screens/createchannel_page.dart';
+import 'package:plflutter/screens/main_scaffold.dart';
 import 'package:plflutter/screens/login_page.dart';
+import 'package:plflutter/screens/createchannel_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,13 +15,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'PlantLink',
-      theme: ThemeData(primarySwatch: Colors.blue),
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4CAF50)),
+      ),
       home: const AuthCheck(),
       routes: {
         '/login': (context) => const LoginPage(),
-        '/home': (context) => const Home(),
-        '/channels': (context) => const ViewChannel(),
+        '/home': (context) => const MainScaffold(),
         '/channels/create': (context) => const CreateChannel(),
       },
     );
@@ -57,7 +58,9 @@ class _AuthCheckState extends State<AuthCheck> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+      backgroundColor: Color(0xFF4CAF50),
+      body: Center(
+          child: CircularProgressIndicator(color: Colors.white)),
     );
   }
 }

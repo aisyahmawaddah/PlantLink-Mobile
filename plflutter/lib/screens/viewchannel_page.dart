@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:plflutter/screens/deletechannel.dart';
 import 'package:plflutter/screens/editchannel_page.dart';
 import 'package:plflutter/screens/dashboard_page.dart';
-import 'fetch_channel.dart';
-// import 'dart:convert';
-// import 'package:http/http.dart' as http;
+import 'package:plflutter/screens/fetch_channel.dart';
 
 class ViewChannel extends StatelessWidget {
   const ViewChannel({super.key});
@@ -13,41 +11,30 @@ class ViewChannel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('View Channel'),
-        backgroundColor: Colors.green[300],
+        title: const Text(
+          'My Channel',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF4CAF50),
         centerTitle: true,
+        automaticallyImplyLeading: false,
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.pushNamed(context, '/channels/create');
+            },
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text(
+              'Create',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[200],
-                  ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/channels/create');
-                  },
-                  child: const Text('Create +'),
-                ),
-              ),
-
-              Container(
-                padding: const EdgeInsets.all(10),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[200],
-                  ),
-                  onPressed: null,
-                  child: const Text('Manage Sensors'),
-                ),
-              ),
-            ],
-          ),
           const BasePage(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           const Expanded(child: ChannelsList()),
         ],
       ),
@@ -95,21 +82,16 @@ class _BasePageState extends State<BasePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          color: Colors.green[300],
-          padding: const EdgeInsets.all(10),
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : ChannelStats(
-                  totalChannels: totalChannels,
-                  totalSensors: totalSensors,
-                  publicChannels: publicChannels,
-                ),
-        ),
-      ],
+    return Container(
+      color: const Color(0xFF4CAF50),
+      padding: const EdgeInsets.all(10),
+      child: isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : ChannelStats(
+              totalChannels: totalChannels,
+              totalSensors: totalSensors,
+              publicChannels: publicChannels,
+            ),
     );
   }
 }
@@ -130,36 +112,59 @@ class ChannelStats extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Image.asset('assets/plant1.png', width: 25),
-              const Text(' '),
-              const Text('Total Channels: '),
-              Text(totalChannels.toString()),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _StatCard(
+              icon: Icons.sensors,
+              label: 'Total Channels',
+              value: totalChannels.toString(),
+            ),
+            _StatCard(
+              icon: Icons.device_hub,
+              label: 'Registered Sensors',
+              value: totalSensors.toString(),
+            ),
+            _StatCard(
+              icon: Icons.public,
+              label: 'Public Channels',
+              value: publicChannels.toString(),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
-              const Expanded(child: SizedBox()),
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
 
-              Image.asset('assets/plant1.png', width: 25),
-              const Text(' '),
-              const Text('Registered Sensors: '),
-              Text(totalSensors.toString()),
-            ],
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 22),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        Container(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Image.asset('assets/plant1.png', width: 25),
-              const Text(' '),
-              const Text('Public Channels: '),
-              Text(publicChannels.toString()),
-
-              const Expanded(child: SizedBox()),
-            ],
-          ),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
         ),
       ],
     );
@@ -232,54 +237,49 @@ class _ChannelsListState extends State<ChannelsList> {
       );
       if (result == true) {
         _loadChannels();
-        
       }
     } else {
-      // Navigate to the DashboardScreen for "View" action
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DashboardScreen(channelId: channel['_id']),
-        // builder: (context) => PlaceholderPage(action: action, channelName: channel['channel_name']),
-      ),
-    );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DashboardScreen(channelId: channel['_id']),
+        ),
+      );
     }
   }
 
   void _showDeleteDialog(Map<String, dynamic> channel) {
-  if (channel['sensor'] != null && channel['sensor'].isNotEmpty) {
-    // Show warning dialog if sensors are present
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Cannot Delete Channel'),
-          content: const Text('This channel has sensors connected. Please delete the sensors first before deleting the channel.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  } else {
-    // Show delete confirmation dialog if no sensors are present
-    showDialog(
-      context: context,
-      builder: (context) {
-        return DeleteChannelDialog(
-          channelId: channel['_id'].toString(),
-          onDelete: _loadChannels,
-        );
-      },
-    );
+    if (channel['sensor'] != null && channel['sensor'].isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Cannot Delete Channel'),
+            content: const Text(
+                'This channel has sensors connected. Please delete the sensors first before deleting the channel.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return DeleteChannelDialog(
+            channelId: channel['_id'].toString(),
+            onDelete: _loadChannels,
+          );
+        },
+      );
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -290,12 +290,21 @@ class _ChannelsListState extends State<ChannelsList> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
                   child: TextField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: "Search Channels",
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
+                      prefixIcon:
+                          const Icon(Icons.search, color: Color(0xFF4CAF50)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF4CAF50), width: 2),
+                      ),
                     ),
                     onChanged: _filterChannels,
                   ),
@@ -304,10 +313,15 @@ class _ChannelsListState extends State<ChannelsList> {
                   child: _filteredChannels.isEmpty
                       ? const Center(child: Text("No channels found"))
                       : SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        child: PaginatedDataTable(
-                            header: const Text("Channels"),
-                            rowsPerPage: 6, // Set your rows per page
+                          scrollDirection: Axis.vertical,
+                          child: PaginatedDataTable(
+                            header: const Text(
+                              "Channels",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4CAF50)),
+                            ),
+                            rowsPerPage: 6,
                             columns: const [
                               DataColumn(label: Text('Channel Name')),
                               DataColumn(label: Text('Description')),
@@ -316,9 +330,14 @@ class _ChannelsListState extends State<ChannelsList> {
                               DataColumn(label: Text('Sensors')),
                               DataColumn(label: Text('Action')),
                             ],
-                            source: ChannelDataSource(_filteredChannels,context,_navigateToPage,_showDeleteDialog),
+                            source: ChannelDataSource(
+                              _filteredChannels,
+                              context,
+                              _navigateToPage,
+                              _showDeleteDialog,
+                            ),
                           ),
-                      ),
+                        ),
                 ),
               ],
             ),
@@ -329,15 +348,18 @@ class _ChannelsListState extends State<ChannelsList> {
 class ChannelDataSource extends DataTableSource {
   final List<Map<String, dynamic>> _channels;
   final BuildContext context;
-  final Future<void> Function(BuildContext, String, Map<String, dynamic>) navigateToPage;
+  final Future<void> Function(BuildContext, String, Map<String, dynamic>)
+      navigateToPage;
   final void Function(Map<String, dynamic>) showDeleteDialog;
 
-  ChannelDataSource(this._channels, this.context, this.navigateToPage, this.showDeleteDialog);
+  ChannelDataSource(
+      this._channels, this.context, this.navigateToPage, this.showDeleteDialog);
 
   @override
   DataRow getRow(int index) {
     final channel = _channels[index];
-    int sensorCount = channel['sensor_count'] ?? 0;
+    final int sensorCount = (channel['sensor_count'] ?? 0) as int;
+
     return DataRow(cells: [
       DataCell(Text(channel['channel_name'] ?? '')),
       DataCell(Text(channel['description'] ?? '')),
@@ -377,12 +399,12 @@ class ChannelDataSource extends DataTableSource {
   int get selectedRowCount => 0;
 }
 
-
 class PlaceholderPage extends StatelessWidget {
   final String action;
   final String channelName;
 
-  const PlaceholderPage({super.key, required this.action, required this.channelName});
+  const PlaceholderPage(
+      {super.key, required this.action, required this.channelName});
 
   @override
   Widget build(BuildContext context) {
