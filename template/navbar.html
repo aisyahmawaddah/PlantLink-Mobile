@@ -13,7 +13,7 @@
                     <a class="nav-link nav-item-button mx-1 px-4 {% if request.path == '/mychannel/' %}active{% endif %}" href="{% url 'channels' %}">My Channel</a>
                 </li>
                 <!-- Add dropdown menu -->
-                {% if request.COOKIES.name %}
+                {% if request.COOKIES.username %}
                 <li class="nav-item dropdown">
                     <a class="nav-link nav-item-button mx-1 px-4 dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         {{ request.COOKIES.username }}

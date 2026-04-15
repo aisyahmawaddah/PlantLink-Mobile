@@ -35,11 +35,12 @@ def logPlantFeed(request):
             return render(request, 'logPlantFeed.html', {'error': 'Cannot reach PlantFeed. Try again.'})
 
         if pf_response.status_code == 200:
-            user_data = pf_response.json()
+            user = pf_response.json().get('user', {})
             response = redirect('/mychannel/')
-            response.set_cookie('userid', str(user_data.get('userid', '')))
-            response.set_cookie('username', user_data.get('username', ''))
-            response.set_cookie('email', user_data.get('email', ''))
+            response.set_cookie('userid', str(user.get('userid', '')))
+            response.set_cookie('username', user.get('username', ''))
+            response.set_cookie('name', user.get('name', ''))
+            response.set_cookie('email', user.get('email', ''))
             return response
         else:
             return render(request, 'logPlantFeed.html', {'error': 'Invalid credentials'})
@@ -80,8 +81,9 @@ def api_login(request):
         )
 
         if pf_response.status_code == 200:
-            user_data = pf_response.json()
-            return JsonResponse({'message': 'Login successful', 'user': user_data})
+            user = pf_response.json().get('user', {})
+            return JsonResponse({'message': 'Login successful', 'user': user})
+
         else:
             return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
