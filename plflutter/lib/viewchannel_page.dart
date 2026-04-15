@@ -337,10 +337,7 @@ class ChannelDataSource extends DataTableSource {
   @override
   DataRow getRow(int index) {
     final channel = _channels[index];
-    int sensorCount = 0;
-    if (channel['sensor'] != null && channel['sensor'] is List) {
-      sensorCount = (channel['sensor'] as List).length;
-    }
+    int sensorCount = channel['sensor_count'] ?? 0;
     return DataRow(cells: [
       DataCell(Text(channel['channel_name'] ?? '')),
       DataCell(Text(channel['description'] ?? '')),

@@ -140,28 +140,32 @@ def view_channel_sensor(request, channel_id):
 def get_channel_statistics(request):
     if request.method == 'GET':
         try:
-            # Connect to MongoDB
             db, collection = connect_to_mongodb('Channel', 'dashboard')
-            
-            # Get total channels
-            total_channels = collection.count_documents({})
-            
-            # Get total sensors
-            total_sensors = sum([
-                len(channel.get('sensor', []))
-                for channel in collection.find({}, {'sensor': 1})
-            ])
-            
-            # Get total public channels
-            public_channels = collection.count_documents({'privacy': 'public'})
-            
-            # Return the statistics
+            user_id = request.GET.get('userid', None)
+            query = {"user_id": user_id} if user_id else {}
+
+            total_channels = collection.count_documents(query)
+            total_sensors = 0
+            public_channels = 0
+
+            for channel in collection.find(query):
+                sensor_api = channel.get('API_KEY', '')
+                if sensor_api:
+                    sensor_cols = ['DHT11', 'NPK', 'PHSensor', 'rainfall']
+                    with ThreadPoolExecutor() as executor:
+                        futures = [executor.submit(check_sensor, col, sensor_api)
+                                   for col in sensor_cols]
+                        for future in futures:
+                            total_sensors += future.result()
+                if channel.get('privacy', '') == 'public':
+                    public_channels += 1
+
             return JsonResponse({
                 "totalChannels": total_channels,
                 "totalSensors": total_sensors,
                 "publicChannels": public_channels
             })
-        
+
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
@@ -169,34 +173,40 @@ def get_channel_statistics(request):
 
 class ChannelList(APIView):
     def get(self, request):
-        # Connect to MongoDB
         db, collection = connect_to_mongodb('Channel', 'dashboard')
-        
         if collection is not None:
-            channels = list(collection.find())  # Fetch all channels from MongoDB
-
-            # Convert ObjectId to string in the fetched data
+            user_id = request.query_params.get('userid', None)
+            query = {"user_id": user_id} if user_id else {}
+            channels = list(collection.find(query))
             channels = convert_objectid_to_str(channels)
 
-            # Serialize the data using the ChannelSerializer
-            serializer = ChannelSerializer(channels, many=True)
+            # Count sensors accurately (same as website) using API_KEY
+            for channel in channels:
+                sensor_api = channel.get('API_KEY', '')
+                sensor_count = 0
+                if sensor_api:
+                    sensor_cols = ['DHT11', 'NPK', 'PHSensor', 'rainfall']
+                    with ThreadPoolExecutor() as executor:
+                        futures = [executor.submit(check_sensor, col, sensor_api)
+                                   for col in sensor_cols]
+                        for future in futures:
+                            sensor_count += future.result()
+                channel['sensor_count'] = sensor_count
 
-            # Return the serialized data as a response
+            serializer = ChannelSerializer(channels, many=True)
             return Response(serializer.data)
-        else:
-            return Response({"error": "Failed to connect to MongoDB"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": "Failed to connect to MongoDB"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
-        # Validate incoming data using the ChannelSerializer
         serializer = ChannelSerializer(data=request.data)
         if serializer.is_valid():
-            # If valid, insert the data directly into MongoDB
             db, collection = connect_to_mongodb('Channel', 'dashboard')
             if collection is not None:
                 collection.insert_one(serializer.validated_data)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"error": "Failed to connect to MongoDB"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Failed to connect to MongoDB"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @csrf_exempt

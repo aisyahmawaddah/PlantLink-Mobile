@@ -1,15 +1,16 @@
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 import json
 import requests
-import jwt
-from datetime import datetime, timedelta
-from django.conf import settings
+from datetime import timedelta
 
-# ─── WEBSITE VIEWS (render HTML templates) ───────────────────────────────────
+# ── PlantFeed Login URL ────────────────────────────────────────────────────
+PLANTFEED_LOGIN_URL = "https://kourtney-bottlelike-earthly.ngrok-free.dev/plantlink/Login/"
+
+# ── WEBSITE VIEWS (HTML) ───────────────────────────────────────────────────
 
 def home(request):
     return render(request, 'home.html')
@@ -23,13 +24,30 @@ def logPlantFeed(request):
             return render(request, 'logPlantFeed.html', {'warning_message': True})
 
         try:
-            response = HttpResponseRedirect(reverse('home'))
-            response.set_cookie('username', 'hafiy')
-            response.set_cookie('email', 'hafiy@gmail.com')
-            response.set_cookie('userlevel', 'manager')
-            response.set_cookie('userid', '1')
-            response.set_cookie('name', 'Hafiy Hakimi')
-            return response
+            response = requests.post(
+                PLANTFEED_LOGIN_URL,
+                json={'email': email, 'password': password},
+                headers={
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                timeout=10
+            )
+            response_data = response.json()
+            user_details = response_data.get('user', {})
+            username = user_details.get('username', '')
+
+            if username:
+                resp = HttpResponseRedirect(reverse('home'))
+                resp.set_cookie('username', username)
+                resp.set_cookie('email', user_details.get('email', ''))
+                resp.set_cookie('userlevel', user_details.get('userlevel', ''))
+                resp.set_cookie('userid', str(user_details.get('userid', '')))
+                resp.set_cookie('name', user_details.get('name', ''))
+                return resp
+            else:
+                return render(request, 'logPlantFeed.html', {'warning_message': True})
+
         except Exception:
             return render(request, 'logPlantFeed.html', {'warning_message': True})
     else:
@@ -50,11 +68,7 @@ def profile(request):
     else:
         return redirect('logPlantFeed')
 
-# ─── MOBILE API VIEWS (return JSON) ─────────────────────────────────────────
-
-JWT_SECRET_KEY = settings.SECRET_KEY
-JWT_ALGORITHM = 'HS256'
-JWT_EXPIRATION_TIME = timedelta(hours=1)
+# ── MOBILE API VIEWS (JSON) ────────────────────────────────────────────────
 
 @csrf_exempt
 def api_login(request):
@@ -63,22 +77,44 @@ def api_login(request):
             data = json.loads(request.body)
             email = data.get('email')
             password = data.get('password')
+
             if not email or not password:
                 return JsonResponse({'error': 'Email and password are required'}, status=400)
-            if email == 'hafiy@gmail.com' and password == 'hafiyhakimi11':
+
+            response = requests.post(
+                PLANTFEED_LOGIN_URL,
+                json={'email': email, 'password': password},
+                headers={
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                timeout=10
+            )
+            response_data = response.json()
+            user_details = response_data.get('user', {})
+            username = user_details.get('username', '')
+
+            if username:
                 return JsonResponse({
                     'message': 'Login successful',
                     'user': {
-                        'username': 'hafiy',
-                        'email': 'hafiy@gmail.com',
-                        'userlevel': 'manager',
-                        'userid': 1,
-                        'name': 'Hafiy Hakimi',
+                        'username': username,
+                        'email': user_details.get('email', ''),
+                        'userlevel': user_details.get('userlevel', ''),
+                        'userid': str(user_details.get('userid', '')),
+                        'name': user_details.get('name', ''),
                     }
-                })
-            return JsonResponse({'error': 'Invalid credentials'}, status=401)
+                }, status=200)
+            else:
+                return JsonResponse({'error': 'Invalid credentials'}, status=401)
+
+        except requests.exceptions.Timeout:
+            return JsonResponse({'error': 'Authentication server timed out'}, status=504)
+        except requests.exceptions.RequestException:
+            return JsonResponse({'error': 'Cannot reach authentication server'}, status=503)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 @csrf_exempt
@@ -87,11 +123,4 @@ def api_logout(request):
 
 @csrf_exempt
 def api_profile(request):
-    user_data = {
-        'username': 'hafiy',
-        'email': 'hafiy@gmail.com',
-        'userlevel': 'manager',
-        'userid': 1,
-        'name': 'Hafiy'
-    }
-    return JsonResponse({'user': user_data}, status=200)
+    return JsonResponse({'message': 'Profile endpoint'}, status=200)
