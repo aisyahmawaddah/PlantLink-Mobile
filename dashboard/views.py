@@ -469,6 +469,10 @@ def getDashboardData(request, channel_id):
 
             context = {
                 "channel_id": channel_id,
+                "channel_name": channel.get('channel_name', ''),   
+                "description": channel.get('description', ''),      
+                "location": channel.get('location', ''),            
+                "allow_api": channel.get('allow_API', ''),          
                 "ph_values": ph_values,
                 "timestamps": timestamps,  # Ensure alignment
                 "rainfall_values": rainfall_values,
