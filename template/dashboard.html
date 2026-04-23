@@ -360,15 +360,10 @@
                     }
         
                     // Initialize WebSocket connection
-                    const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+                    const socket = new WebSocket('wss://dy0671e7y3.execute-api.ap-southeast-2.amazonaws.com/production/');
             
                     socket.onopen = function() {
                         console.log('WebSocket connection established');
-                        // Send the API key to register the connection
-                        socket.send(JSON.stringify({
-                            action: 'setAPI',
-                            api: data.API  // Use the API key from the fetched data
-                        }));
                     };
                 
                     socket.onclose = function(event) {
