@@ -55,7 +55,9 @@
                 document.getElementById('empty_sensor').style.display = 'block';
             }
 
-            fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
+            fetch(`https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/${channelId}/get_dashboard_data/`, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            })
                 .then(response => response.json())
                 .then(data => {
                     latest_ph = data.ph_values.length ? data.ph_values[data.ph_values.length - 1] : null;
@@ -182,15 +184,10 @@
                     }
 
                     // Initialize WebSocket connection
-                    const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+                    const socket = new WebSocket(`wss://dy0671e7y3.execute-api.ap-southeast-2.amazonaws.com/production/?api_key=${data.API}`);
 
                     socket.onopen = function() {
                         console.log('WebSocket connection established');
-                        // Send the API key to register the connection
-                        socket.send(JSON.stringify({
-                            action: 'setAPI',
-                            api: data.API  // Use the API key from the fetched data
-                        }));
                     };
 
                     socket.onclose = function(event) {

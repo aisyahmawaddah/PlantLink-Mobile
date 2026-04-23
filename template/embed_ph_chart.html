@@ -58,7 +58,11 @@
         
             document.getElementById('chart-spinner-container').style.display = 'block';
             document.getElementById('download').style.display = 'none';
-            const url = `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelId}/${startDate}/${endDate}/`;
+            const isLive = "{{ is_live }}" === "True";
+            const url = isLive
+                ? `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelId}/all/`
+                : `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelId}/${startDate}/${endDate}/`;
+
             fetch(url, {
                 headers: { 'ngrok-skip-browser-warning': 'true' }
             })

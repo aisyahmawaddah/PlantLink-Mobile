@@ -45,7 +45,9 @@
             const startDate = "{{ start_date }}";
             const endDate = "{{ end_date }}";
         
-            fetch(`/mychannel/${channelId}/getCropRecommendationByDate/${startDate}/${endDate}/`)
+            fetch(`https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/${channelId}/getCropRecommendationByDate/${startDate}/${endDate}/`, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            })
                 .then(response => response.json())
                 .then(data => {
                     const cropRecommendationsContainer = document.getElementById('crop-recommendations');

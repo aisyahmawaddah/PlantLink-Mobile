@@ -24,6 +24,10 @@ urlpatterns = [
     path('humidity_temperature/<str:channel_id>/<str:start_date>/<str:end_date>/', views.getHumidityTemperatureData, name='getHumidityTemperatureData'),
     path('NPK/<str:channel_id>/<str:start_date>/<str:end_date>/', views.getNPKData, name='getNPKData'),
     path('rainfall_data/<str:channel_id>/<str:start_date>/<str:end_date>/', views.getRainfallData, name='getRainfallData'),
+    path('humidity_temperature/<str:channel_id>/all/', views.getHumidityTemperatureDataAll, name='getHumidityTemperatureDataAll'),
+    path('ph_data/<str:channel_id>/all/', views.getPHDataAll, name='getPHDataAll'),
+    path('NPK/<str:channel_id>/all/', views.getNPKDataAll, name='getNPKDataAll'),
+    path('rainfall_data/<str:channel_id>/all/', views.getRainfallDataAll, name='getRainfallDataAll'),
 
     # ── CHANNEL-ID PATHS after all fixed paths ────────────────────
     path('<str:channel_id>/', views.view_channel_sensor, name='view_channel_sensor'),
@@ -31,6 +35,8 @@ urlpatterns = [
     path('<str:channel_id>/get_dashboard_data/', views.getDashboardData, name="getDashboardData"),
     path('<str:channel_id>/share', views.share_channel, name="share_channel"),
     path('<str:channel_id>/share_chart/<str:chart_type>Chart/<str:start_date>/<str:end_date>/<str:chart_name>/', views.share_chart, name="share_chart"),
+    path('<str:channel_id>/share_chart/<str:chart_type>/live/<str:chart_name>/', views.share_chart_live, name="share_chart_live"),
+    path('embed/channel/<str:channel_id>/<str:chart_type>/live/', views.embed_live_chart, name='embed_live_chart'),
     path('<str:channel_id>/manage_sensor', views.manage_sensor, name="manage_sensor"),
     path('<str:channel_id>/edit_sensor/<str:sensor_type>/<str:sensor_id>/', views.edit_sensor, name="edit_sensor"),
     path('<str:channel_id>/add_sensor', views.add_sensor, name="add_sensor"),

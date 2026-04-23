@@ -100,12 +100,24 @@
                             <input type="text" class="form-control" id="chartName" required>
                         </div>
                         <div class="mb-3">
-                            <label for="startDate" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="startDate" required>
+                            <label class="form-label">Share Type</label>
+                            <div>
+                                <input type="radio" name="shareType" id="shareTypeTimeline" value="timeline" checked>
+                                <label for="shareTypeTimeline">Fixed Timeline</label>
+                                &nbsp;&nbsp;
+                                <input type="radio" name="shareType" id="shareTypeLive" value="live">
+                                <label for="shareTypeLive">Live (always latest)</label>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="endDate" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="endDate" required>
+                        <div id="dateFields">
+                            <div class="mb-3">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate">
+                            </div>
+                            <div class="mb-3">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate">
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Generate Embed Code</button>
                     </form>
@@ -360,10 +372,14 @@
                     }
         
                     // Initialize WebSocket connection
-                    const socket = new WebSocket('wss://dy0671e7y3.execute-api.ap-southeast-2.amazonaws.com/production/');
-            
+                    const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+
                     socket.onopen = function() {
                         console.log('WebSocket connection established');
+                        socket.send(JSON.stringify({
+                            action: 'setAPI',
+                            api: data.API
+                        }));
                     };
                 
                     socket.onclose = function(event) {
@@ -513,15 +529,21 @@
                 form.addEventListener('submit', function(event) {
                     event.preventDefault();
                     const chartName = document.getElementById('chartName').value;
+                    const shareType = document.querySelector('input[name="shareType"]:checked').value;
                     const startDate = document.getElementById('startDate').value;
                     const endDate = document.getElementById('endDate').value;
-        
+                
                     const shareOptions = document.getElementById('shareOptions');
                     shareOptions.style.display = 'block';
-        
+                
                     const embedCode = document.getElementById('embedCode');
-                    embedCode.value = `https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
-        
+                    if (shareType === 'live') {
+                        embedCode.value = `${window.location.origin}/mychannel/embed/channel/{{ channel_id }}/${chartType}/live/`;
+                    } else {
+                        embedCode.value = `${window.location.origin}/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
+                    }
+                
+                    shareToPlantFeedButton.setAttribute('data-share-type', shareType);
                     shareToPlantFeedButton.setAttribute('data-start-date', startDate);
                     shareToPlantFeedButton.setAttribute('data-end-date', endDate);
                     shareToPlantFeedButton.setAttribute('data-chart-name', chartName);
@@ -553,6 +575,12 @@
                 });
             })
         })
+        document.querySelectorAll('input[name="shareType"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                const dateFields = document.getElementById('dateFields');
+                dateFields.style.display = this.value === 'live' ? 'none' : 'block';
+            });
+        });
         document.addEventListener('DOMContentLoaded', function() {
             const copyButton = document.querySelector('.copy-text button');
             const embedCodeInput = document.getElementById('embedCode');
@@ -569,9 +597,13 @@
             shareToPlantFeedButton.addEventListener('click', function() {
                 const chartType = shareToPlantFeedButton.getAttribute('data-chart-type');
                 const chartName = document.getElementById('chartName').value;
+                const shareType = shareToPlantFeedButton.getAttribute('data-share-type');
                 const startDate = shareToPlantFeedButton.getAttribute('data-start-date');
                 const endDate = shareToPlantFeedButton.getAttribute('data-end-date');
                 let url;
+                if (shareType === 'live') {
+                    url = `/mychannel/{{ channel_id }}/share_chart/${chartType}/live/${chartName}/`;
+                } else
                 switch (chartType) {
                     case 'phChart':
                         url = `/mychannel/{{ channel_id }}/share_chart/phChart/${startDate}/${endDate}/${chartName}/`;
@@ -642,7 +674,7 @@
 
                 shareTableOptions.style.display = 'block';
                 const embedTableCode = document.getElementById('embedTableCode');
-                embedTableCode.value = `https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/cropTable/${tableStartDate}/${tableEndDate}/`;
+                embedTableCode.value = `${window.location.origin}/mychannel/embed/channel/{{ channel_id }}/cropTable/${tableStartDate}/${tableEndDate}/`;
 
                 shareTableToPlantFeedButton.setAttribute('data-start-date', tableStartDate);
                 shareTableToPlantFeedButton.setAttribute('data-end-date', tableEndDate);
