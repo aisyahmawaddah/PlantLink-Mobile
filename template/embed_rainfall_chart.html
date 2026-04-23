@@ -137,6 +137,25 @@
                 link.click();
             }, 'image/jpeg');
         });
+
+        const wsApiKey = "{{ API }}";
+        if (wsApiKey) {
+            const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+            socket.onopen = function() {
+                socket.send(JSON.stringify({ action: 'setAPI', api: wsApiKey }));
+            };
+            socket.onmessage = function(event) {
+                const msg = JSON.parse(event.data);
+                if (msg.privateMessage && msg.privateMessage.sensor_type === 'rainfall_sensor') {
+                    if (rainfallChart) {
+                        rainfallChart.data.labels.push(msg.privateMessage.timestamp);
+                        rainfallChart.data.datasets[0].data.push(parseFloat(msg.privateMessage.rainfall_value));
+                        rainfallChart.update();
+                    }
+                }
+            };
+        }
+
     </script>
 </body>
 </html>
