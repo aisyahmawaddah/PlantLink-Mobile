@@ -106,7 +106,7 @@
                                 <label for="shareTypeTimeline">Fixed Timeline</label>
                                 &nbsp;&nbsp;
                                 <input type="radio" name="shareType" id="shareTypeLive" value="live">
-                                <label for="shareTypeLive">Live (always latest)</label>
+                                <label for="shareTypeLive">Live</label>
                             </div>
                         </div>
                         <div id="dateFields">
@@ -251,7 +251,9 @@
                     const timestamps_NPK = data.timestamps_NPK || [];
         
                     // Check if there is any data to show charts
-                    if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
+                    if (phData.length === 0 && humidData.length === 0 && tempData.length === 0
+                      && nitrogenData.length === 0 && phosphorousData.length === 0
+                      && potassiumData.length === 0 && rainfallData.length === 0){
                         document.getElementById('empty_sensor').style.display = 'block';
                     } else {
                         document.getElementById('empty_sensor').style.display = 'none';
@@ -602,40 +604,40 @@
                 const endDate = shareToPlantFeedButton.getAttribute('data-end-date');
                 let url;
                 if (shareType === 'live') {
-                    url = `/mychannel/{{ channel_id }}/share_chart/${chartType}/live/${chartName}/`;
-                } else
-                switch (chartType) {
-                    case 'phChart':
-                        url = `/mychannel/{{ channel_id }}/share_chart/phChart/${startDate}/${endDate}/${chartName}/`;
-                        break;
-                    case 'rainfallChart':
-                        url = `/mychannel/{{ channel_id }}/share_chart/rainfallChart/${startDate}/${endDate}/${chartName}/`;
-                        break;
-                    case 'humidityChart':
-                        url = `/mychannel/{{ channel_id }}/share_chart/humidityChart/${startDate}/${endDate}/${chartName}/`;
-                        break;
-                    case 'temperatureChart':
-                        url = `/mychannel/{{ channel_id }}/share_chart/temperatureChart/${startDate}/${endDate}/${chartName}/`;
-                        break;
-                    case 'nitrogenChart':
-                        url = `/mychannel/{{ channel_id }}/share_chart/nitrogenChart/${startDate}/${endDate}/${chartName}/`;
-                        break;
-                    case 'phosphorousChart':
-                        url = `/mychannel/{{ channel_id }}/share_chart/phosphorousChart/${startDate}/${endDate}/${chartName}/`;
-                        break;
-                    case 'potassiumChart':
-                        url = `/mychannel/{{ channel_id }}/share_chart/potassiumChart/${startDate}/${endDate}/${chartName}/`;
-                        break;
-                    default:
-                        console.error('Invalid chart type');
-                        return;
+                    url = `/mychannel/{{ channel_id }}/share_chart/${chartType}/live/`;
+                } else {
+                    switch (chartType) {
+                        case 'phChart':
+                            url = `/mychannel/{{ channel_id }}/share_chart/phChart/${startDate}/${endDate}/`;
+                            break;
+                        case 'rainfallChart':
+                            url = `/mychannel/{{ channel_id }}/share_chart/rainfallChart/${startDate}/${endDate}/`;
+                            break;
+                        case 'humidityChart':
+                            url = `/mychannel/{{ channel_id }}/share_chart/humidityChart/${startDate}/${endDate}/`;
+                            break;
+                        case 'temperatureChart':
+                            url = `/mychannel/{{ channel_id }}/share_chart/temperatureChart/${startDate}/${endDate}/`;
+                            break;
+                        case 'nitrogenChart':
+                            url = `/mychannel/{{ channel_id }}/share_chart/nitrogenChart/${startDate}/${endDate}/`;
+                            break;
+                        case 'phosphorousChart':
+                            url = `/mychannel/{{ channel_id }}/share_chart/phosphorousChart/${startDate}/${endDate}/`;
+                            break;
+                        case 'potassiumChart':
+                            url = `/mychannel/{{ channel_id }}/share_chart/potassiumChart/${startDate}/${endDate}/`;
+                            break;
+                        default:
+                            console.error('Invalid chart type');
+                            return;
+                    }
                 }
-        
+                
                 fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chart_name: chartName })
                 })
                 .then(response => response.json())
                 .then(data => {

@@ -647,7 +647,14 @@ def share_channel(request, channel_id):
         return JsonResponse({"error": "Database connection error"}, status=500)
     
 @csrf_exempt
-def share_chart(request, channel_id, chart_type, start_date, end_date, chart_name):
+def share_chart(request, channel_id, chart_type, start_date, end_date):
+    chart_name = 'Chart'
+    if request.body:
+        try:
+            body = json.loads(request.body)
+            chart_name = body.get('chart_name', 'Chart')
+        except:
+            pass
     try:
         _id = ObjectId(channel_id)
         db, collection = connect_to_mongodb('Channel', 'dashboard')
@@ -708,7 +715,14 @@ def share_chart(request, channel_id, chart_type, start_date, end_date, chart_nam
         return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
-def share_chart_live(request, channel_id, chart_type, chart_name):
+def share_chart_live(request, channel_id, chart_type):
+    chart_name = 'Live Chart'
+    if request.body:
+        try:
+            body = json.loads(request.body)
+            chart_name = body.get('chart_name', 'Live Chart')
+        except:
+            pass
     if request.method == 'POST':
         try:
             channel_db, channel_collection = connect_to_mongodb('Channel', 'dashboard')

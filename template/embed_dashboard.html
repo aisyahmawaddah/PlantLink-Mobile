@@ -85,7 +85,9 @@
                     const timestamps_NPK = data.timestamps_NPK || [];
 
                     // Check if there is any data to show charts
-                    if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
+                    if (phData.length === 0 && humidData.length === 0 && tempData.length === 0
+                      && nitrogenData.length === 0 && phosphorousData.length === 0
+                      && potassiumData.length === 0 && rainfallData.length === 0){
                         document.getElementById('empty_sensor').style.display = 'block';
                     } else {
                         document.getElementById('empty_sensor').style.display = 'none';

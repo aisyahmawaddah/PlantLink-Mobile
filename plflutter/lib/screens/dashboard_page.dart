@@ -419,19 +419,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .toList();
   }
 
-  void _showShareChartDialog(
-      String title, List<FlSpot> spots, String chartDataType, List<String> timestamps) {
-    final chartNameController = TextEditingController(text: title);
-    final startDateController = TextEditingController(
-      text: timestamps.isNotEmpty ? _formatDateForApi(timestamps.first) : '',
-    );
-    final endDateController = TextEditingController(
-      text: timestamps.isNotEmpty ? _formatDateForApi(timestamps.last) : '',
-    );
-
+  void _showShareChartDialog(String title, List<FlSpot> spots, String chartDataType, List<String> timestamps) {
+    final chartNameController = TextEditingController();
+    final startDateController = TextEditingController();
+    final endDateController = TextEditingController();
+    DateTime? selectedStartDate;
+    DateTime? selectedEndDate;
+  
     String? generatedEmbedCode;
     bool embedGenerated = false;
-
+    String shareMode = 'fixed';
+  
     showDialog(
       context: context,
       builder: (context) {
@@ -451,67 +449,100 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: const InputDecoration(border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
-                    const Text("Start Date"),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: startDateController,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate:
-                              DateTime.tryParse(startDateController.text) ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          setDialogState(() {
-                            startDateController.text =
-                                DateFormat('yyyy-MM-dd').format(picked);
-                          });
-                        }
-                      },
+                    const Text("Share Type"),
+                    Row(
+                      children: [
+                        Radio<String>(
+                          value: 'fixed',
+                          groupValue: shareMode,
+                          onChanged: (val) => setDialogState(() {
+                            shareMode = val!;
+                            embedGenerated = false;
+                            generatedEmbedCode = null;
+                          }),
+                        ),
+                        const Text("Fixed Timeline"),
+                        const SizedBox(width: 8),
+                        Radio<String>(
+                          value: 'live',
+                          groupValue: shareMode,
+                          onChanged: (val) => setDialogState(() {
+                            shareMode = val!;
+                            embedGenerated = false;
+                            generatedEmbedCode = null;
+                          }),
+                        ),
+                        const Text("Live"),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    const Text("End Date"),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: endDateController,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'YYYY-MM-DD',
+                    if (shareMode == 'fixed') ...[
+                      const SizedBox(height: 4),
+                      const Text("Start Date"),
+                      const SizedBox(height: 4),
+                      TextField(
+                        controller: startDateController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'dd/mm/yyyy',
+                        ),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedStartDate = picked;
+                              startDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                            });
+                          }
+                        },
                       ),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate:
-                              DateTime.tryParse(endDateController.text) ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          setDialogState(() {
-                            endDateController.text =
-                                DateFormat('yyyy-MM-dd').format(picked);
-                          });
-                        }
-                      },
-                    ),
+                      const SizedBox(height: 12),
+                      const Text("End Date"),
+                      const SizedBox(height: 4),
+                      TextField(
+                        controller: endDateController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'dd/mm/yyyy',
+                        ),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setDialogState(() {
+                              selectedEndDate = picked;
+                              endDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                            });
+                          }
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        final start = startDateController.text;
-                        final end = endDateController.text;
-                        if (start.isEmpty || end.isEmpty) return;
                         setDialogState(() {
-                          generatedEmbedCode =
+                          if (shareMode == 'live') {
+                            generatedEmbedCode =
+                              '$_baseUrl/mychannel/embed/channel/$channelId/$chartDataType/live/';
+                            embedGenerated = true;
+                          } else {
+                            if (selectedStartDate == null || selectedEndDate == null) return;
+                            final start = DateFormat('yyyy-MM-dd').format(selectedStartDate!);
+                            final end = DateFormat('yyyy-MM-dd').format(selectedEndDate!);
+                            generatedEmbedCode =
                               '$_baseUrl/mychannel/embed/channel/$channelId/${chartDataType}Chart/$start/$end/';
-                          embedGenerated = true;
+                            embedGenerated = true;
+                          }
                         });
                       },
                       child: const Text("Generate Embed Code"),
@@ -526,13 +557,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             chartNameController.text,
                             spots,
                             chartDataType,
-                            startDateController.text,
-                            endDateController.text,
+                            selectedStartDate != null ? DateFormat('yyyy-MM-dd').format(selectedStartDate!) : '',
+                            selectedEndDate != null ? DateFormat('yyyy-MM-dd').format(selectedEndDate!) : '',
                             selectedChartTypes[title] ?? "Spline Chart",
+                            isLive: shareMode == 'live',
                           );
                         },
-                        child: const Text("Share to PlantFeed",
-                            style: TextStyle(color: Colors.white)),
+                        child: const Text("Share to PlantFeed", style: TextStyle(color: Colors.white)),
                       ),
                       const SizedBox(height: 12),
                       const Text("Embed Code"),
@@ -542,17 +573,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Expanded(
                             child: TextField(
                               readOnly: true,
-                              controller:
-                                  TextEditingController(text: generatedEmbedCode),
-                              decoration:
-                                  const InputDecoration(border: OutlineInputBorder()),
+                              controller: TextEditingController(text: generatedEmbedCode),
+                              decoration: const InputDecoration(border: OutlineInputBorder()),
                             ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.copy),
                             onPressed: () {
-                              Clipboard.setData(
-                                  ClipboardData(text: generatedEmbedCode ?? ''));
+                              Clipboard.setData(ClipboardData(text: generatedEmbedCode ?? ''));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Copied to clipboard')),
                               );
@@ -618,36 +646,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> shareChart(
-    String chartTitle,
-    List<FlSpot> spots,
-    String chartDataType,
-    String startDate,
-    String endDate,
-    String chartType,
-  ) async {
-    final String formattedStartDate = _formatDateForApi(startDate);
-    final String formattedEndDate = _formatDateForApi(endDate);
-    final encodedTitle = Uri.encodeComponent(chartTitle);
-    final url =
-        'http://10.0.2.2:8000/mychannel/$channelId/share_chart/${chartDataType}Chart/$formattedStartDate/$formattedEndDate/$encodedTitle/';
-
+  Future<void> shareChart(String chartTitle, List<FlSpot> spots, String chartDataType,
+      String startDate, String endDate, String chartType, {bool isLive = false}) async {
+  
+    final String url;
+    if (isLive) {
+      url = 'http://10.0.2.2:8000/mychannel/$channelId/share_chart/$chartDataType/live/';
+    } else {
+      final String formattedStartDate = _formatDateForApi(startDate);
+      final String formattedEndDate = _formatDateForApi(endDate);
+      url = 'http://10.0.2.2:8000/mychannel/$channelId/share_chart/${chartDataType}Chart/$formattedStartDate/$formattedEndDate/';
+    }
+  
     final payload = {
       "plantfeed_user_id": _plantfeedUserId,
+      "chart_name": chartTitle,
       "data_points": spots.map((spot) => {"x": spot.x, "y": spot.y}).toList(),
     };
-
+  
     try {
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
-
+  
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData["success"] != null) {
-          _showDialog("Chart Shared", responseData["success"]);
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text("Chart Shared"),
+                content: Text(responseData["success"]),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("OK"),
+                  ),
+                ],
+              );
+            },
+          );
         } else {
           _showErrorDialog("Failed to share the chart.");
         }

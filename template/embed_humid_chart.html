@@ -146,7 +146,7 @@
         });
      
         const wsApiKey = "{{ API }}";
-        if (wsApiKey) {
+        if (wsApiKey && isLive) {
             const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
             socket.onopen = function() {
                 socket.send(JSON.stringify({ action: 'setAPI', api: wsApiKey }));

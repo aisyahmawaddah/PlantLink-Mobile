@@ -430,7 +430,7 @@ def combined_post(request):
                             'sensor_data': [doc]
                         }
                         collection.insert_one(new_document)
-                        return JsonResponse({'message': 'New DHT11 sensor document created'}, status=201)
+                        return JsonResponse({'message': 'New NPK sensor document created'}, status=201)
                 else:
                     return JsonResponse({'error': 'Database connection error'}, status=500)
                 
