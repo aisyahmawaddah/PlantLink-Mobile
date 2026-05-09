@@ -1148,6 +1148,20 @@ def add_sensor(request, channel_id):
 
         matching_sensors = []
 
+        # Check if this API key is already used by another channel for this user
+        user_id = request.COOKIES.get('userid', '')
+        duplicate = collection_channel.find_one({
+            'API_KEY': API_KEY,
+            'user_id': user_id,
+            '_id': {'$ne': _id}
+        })
+        if duplicate:
+            return render(request, 'add_sensor.html', {
+                'channel_id': channel_id,
+                'error': f'API key "{API_KEY}" is already used by your channel "{duplicate.get("channel_name", "another channel")}". Please use a different key.',
+                'API_KEY': API_KEY,
+            }, status=409)
+
         # Search ALL sensor collections first, THEN save
         for sensor in sensors:
             sensor_db, sensor_collection = connect_to_mongodb('sensor', sensor['db_name'])

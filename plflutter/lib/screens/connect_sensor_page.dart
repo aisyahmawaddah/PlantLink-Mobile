@@ -76,18 +76,35 @@ class _AddSensorScreenState extends State<AddSensorScreen> {
       final url = Uri.parse('http://10.0.2.2:8000/mychannel/${widget.channelId}/add_sensor');
       final response = await http.post(url, body: {'apiKey': apiKey});
 
-      if (response.statusCode == 200 || response.statusCode == 302) {
-        _showSnackbar("API key saved! Data will appear once your sensor connects.");
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DashboardScreen(channelId: widget.channelId),
-          ),
-        );
-      } else {
-        _showSnackbar("Server error (${response.statusCode}). Please try again.");
-      }
+            if (response.statusCode == 200 || response.statusCode == 302) {
+              _showSnackbar("API key saved! Data will appear once your sensor connects.");
+              if (!mounted) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DashboardScreen(channelId: widget.channelId),
+                ),
+              );
+            } else if (response.statusCode == 409) {
+              if (!mounted) return;
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('API Key Already In Use'),
+                  content: Text(
+                    '"$apiKey" is already assigned to another one of your channels. Please use a different API key.',
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              _showSnackbar("Server error (${response.statusCode}). Please try again.");
+            }
     } catch (e) {
       _showSnackbar("Connection failed. Check your network.");
     }
