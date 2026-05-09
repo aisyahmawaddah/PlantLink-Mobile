@@ -1148,11 +1148,10 @@ def add_sensor(request, channel_id):
 
         matching_sensors = []
 
-        # Fetch data from each sensor collection
+        # Search ALL sensor collections first, THEN save
         for sensor in sensors:
             sensor_db, sensor_collection = connect_to_mongodb('sensor', sensor['db_name'])
             if sensor_db is not None and sensor_collection is not None:
-                # Fetch sensors matching the provided API_KEY
                 sensor_data = sensor_collection.find({'API_KEY': API_KEY})
                 for data in sensor_data:
                     matching_sensors.append({
@@ -1161,42 +1160,39 @@ def add_sensor(request, channel_id):
                         'sensor_data_count': len(data.get('sensor_data', [])),
                     })
 
-        # Update the channel document with the matching sensors
-        if matching_sensors:
-            # Use $set to overwrite the 'sensor' array with the new matching sensors
-            collection_channel.update_one(
-                filter_criteria,
-                {
-                    '$set': {
-                        'API_KEY': API_KEY,
-                        'allow_API': "permit",
-                        'sensor': matching_sensors  # Overwrite the sensor array
-                    }
+        # Always save API_KEY + permit AFTER checking all collections
+        collection_channel.update_one(
+            filter_criteria,
+            {
+                '$set': {
+                    'API_KEY': API_KEY,
+                    'allow_API': "permit",
+                    'sensor': matching_sensors
                 }
-            )
-            print(f"Successfully updated sensors for channel {channel_id}.")
+            }
+        )
+        print(f"Saved API_KEY '{API_KEY}' for channel {channel_id}. Sensors matched: {len(matching_sensors)}")
+
+        if matching_sensors:
             return redirect('view_channel_sensor', channel_id=channel_id)
         else:
-            print(f"No sensors found with API_KEY: {API_KEY}")
             return render(request, 'add_sensor.html', {
                 'channel_id': channel_id,
-                'error': 'No sensors found with the provided API_KEY.'
+                'message': 'API key saved. No sensor data yet — program your device with this key and data will appear automatically.'
             })
+
     else:
-        # Handle GET request to render the form
+        # GET request — render the form
         _id = ObjectId(channel_id)
         db, collection = connect_to_mongodb('Channel', 'dashboard')
+        context = {"channel_id": channel_id, "API_KEY": ""}
 
         if db is not None and collection is not None:
             channel = collection.find_one({"_id": _id})
             if channel:
-                print("Found channel")
-                sensor_api = channel.get('API_KEY', '')
-                context = {"channel_id": channel_id, "API_KEY": sensor_api}
-                return render(request, 'add_sensor.html', context)
-            else:
-                context = {"channel_id": channel_id}
-                return render(request, 'add_sensor.html', context)
+                context["API_KEY"] = channel.get('API_KEY', '')
+
+        return render(request, 'add_sensor.html', context)
 
 # MANAGE SENSOR BASED ON API KEY - DONE (New)
 def manage_sensor(request, channel_id):

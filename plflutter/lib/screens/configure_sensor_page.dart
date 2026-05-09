@@ -147,8 +147,29 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!['sensors'].isEmpty) {
-            return const Center(child: Text('No sensors found.'));
+                    } else if (!snapshot.hasData) {
+            return const Center(child: Text('No sensor data available.'));
+          } else if (snapshot.data!['sensors'].isEmpty) {
+            final apiKey = snapshot.data!['API_KEY_VALUE'];
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.sensors_off, size: 48, color: Colors.orange),
+                    const SizedBox(height: 16),
+                    Text(
+                      apiKey != null && apiKey.toString().isNotEmpty
+                          ? 'API key "$apiKey" is saved.\nNo sensor data yet — program your device with this key and it will appear here automatically.'
+                          : 'No sensors connected yet.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            );
           } else {
             final apiKey = snapshot.data!['API_KEY_VALUE'];
             final sensors = snapshot.data!['sensors'];

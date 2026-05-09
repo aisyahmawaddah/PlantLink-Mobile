@@ -271,6 +271,7 @@
                             phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
                             addDropdown(phCanvasContainer, phChart);
                             addShareButton(phCanvasContainer, phCanvas.id, "phChart");
+                            addDatePicker(phCanvasContainer, 'phChart');
                         }
                         
                         if (rainfallData.length > 0) {
@@ -285,6 +286,7 @@
                             rainfallChart = createChart(rainfallCanvas.id, rainfallData, rainfall_timestamps, 'Rainfall Value');
                             addDropdown(rainfallCanvasContainer, rainfallChart);
                             addShareButton(rainfallCanvasContainer, rainfallCanvas.id, "rainfallChart");
+                            addDatePicker(rainfallCanvasContainer, 'rainfallChart');
                         }
 
                         if (humidData.length > 0) {
@@ -299,6 +301,7 @@
                             humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
                             addDropdown(humidCanvasContainer, humidChart);
                             addShareButton(humidCanvasContainer, humidCanvas.id, "humidityChart");
+                            addDatePicker(humidCanvasContainer, 'humidChart'); 
                         }
         
                         if (tempData.length > 0) {
@@ -313,6 +316,7 @@
                             tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
                             addDropdown(tempCanvasContainer, tempChart);
                             addShareButton(tempCanvasContainer, tempCanvas.id, "temperatureChart");
+                            addDatePicker(tempCanvasContainer, 'tempChart');
                         }
 
                         if (nitrogenData.length > 0) {
@@ -327,6 +331,7 @@
                             nitrogenChart = createChart(nitrogenCanvas.id, nitrogenData, timestamps_NPK, 'Nitrogen Value');
                             addDropdown(nitrogenCanvasContainer, nitrogenChart);
                             addShareButton(nitrogenCanvasContainer, nitrogenCanvas.id, "nitrogenChart");
+                            addDatePicker(nitrogenCanvasContainer, 'nitrogenChart');
                         }
                         
                         if (phosphorousData.length > 0) {
@@ -341,6 +346,7 @@
                             phosphorousChart = createChart(phosphorousCanvas.id, phosphorousData, timestamps_NPK, 'phosphorous Value');
                             addDropdown(phosphorousCanvasContainer, phosphorousChart);
                             addShareButton(phosphorousCanvasContainer, phosphorousCanvas.id, "phosphorousChart");
+                            addDatePicker(phosphorousCanvasContainer, 'phosphorousChart');
                         }
                         
                         if (potassiumData.length > 0) {
@@ -355,6 +361,7 @@
                             potassiumChart = createChart(potassiumCanvas.id, potassiumData, timestamps_NPK, 'Potassium Value');
                             addDropdown(potassiumCanvasContainer, potassiumChart);
                             addShareButton(potassiumCanvasContainer, potassiumCanvas.id, "potassiumChart");
+                            addDatePicker(potassiumCanvasContainer, 'potassiumChart');
                         }
                     }
         
@@ -711,6 +718,78 @@
             });
         });
         
+        function addDatePicker(container, canvasId) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex align-items-center gap-2 mt-1 flex-wrap';
+        
+            const fromLabel = document.createElement('small');
+            fromLabel.innerText = 'From:';
+            const startInput = document.createElement('input');
+            startInput.type = 'date';
+            startInput.className = 'form-control form-control-sm';
+            startInput.style.width = 'auto';
+            // no .value — shows dd/mm/yyyy placeholder
+        
+            const toLabel = document.createElement('small');
+            toLabel.innerText = 'To:';
+            const endInput = document.createElement('input');
+            endInput.type = 'date';
+            endInput.className = 'form-control form-control-sm';
+            endInput.style.width = 'auto';
+            // no .value — shows dd/mm/yyyy placeholder
+        
+            const applyBtn = document.createElement('button');
+            applyBtn.className = 'btn btn-sm btn-outline-secondary';
+            applyBtn.innerText = 'Apply';
+            applyBtn.addEventListener('click', function () {
+                if (startInput.value && endInput.value)
+                    fetchChartDataByDate(canvasId, startInput.value, endInput.value);
+            });
+        
+            wrapper.append(fromLabel, startInput, toLabel, endInput, applyBtn);
+            container.appendChild(wrapper);
+        }
+
+        function fetchChartDataByDate(canvasId, start, end) {
+            const channelId = "{{ channel_id }}";
+            const configs = {
+                'phChart':          { url: `/mychannel/ph_data/${channelId}/${start}/${end}/`,              dataKey: 'ph_values',         tsKey: 'timestamps',           label: 'PH Value' },
+                'humidChart':       { url: `/mychannel/humidity_temperature/${channelId}/${start}/${end}/`, dataKey: 'humid_values',       tsKey: 'timestamps_humid_temp', label: 'Humidity Value' },
+                'tempChart':        { url: `/mychannel/humidity_temperature/${channelId}/${start}/${end}/`, dataKey: 'temp_values',        tsKey: 'timestamps_humid_temp', label: 'Temperature Value' },
+                'rainfallChart':    { url: `/mychannel/rainfall_data/${channelId}/${start}/${end}/`,        dataKey: 'rainfall_values',    tsKey: 'rainfall_timestamps',   label: 'Rainfall Value' },
+                'nitrogenChart':    { url: `/mychannel/NPK/${channelId}/${start}/${end}/`,                 dataKey: 'nitrogen_values',    tsKey: 'timestamps_NPK',        label: 'Nitrogen Value' },
+                'phosphorousChart': { url: `/mychannel/NPK/${channelId}/${start}/${end}/`,                 dataKey: 'phosphorous_values', tsKey: 'timestamps_NPK',        label: 'phosphorous Value' },
+                'potassiumChart':   { url: `/mychannel/NPK/${channelId}/${start}/${end}/`,                 dataKey: 'potassium_values',   tsKey: 'timestamps_NPK',        label: 'Potassium Value' },
+            };
+            const cfg = configs[canvasId];
+            if (!cfg) return;
+        
+            fetch(cfg.url)
+                .then(r => r.json())
+                .then(data => {
+                    const canvas = document.getElementById(canvasId);
+                    const existing = Chart.getChart(canvas);
+                    const type = existing ? existing.config.type : 'line';
+                    if (existing) existing.destroy();
+                    new Chart(canvas, {
+                        type: type,
+                        data: {
+                            labels: data[cfg.tsKey] || [],
+                            datasets: [{ label: cfg.label, data: data[cfg.dataKey] || [], fill: false,
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                            }]
+                        },
+                        options: {
+                            elements: { line: { tension: 0.1 } },
+                            scales: { y: { beginAtZero: false }, x: { ticks: { maxRotation: 90, minRotation: 80 } } },
+                            responsive: false, maintainAspectRatio: false
+                        }
+                    });
+                })
+                .catch(err => console.error('Error:', err));
+        }
+
         function updateHumidityChart(data) {
             if (!humidChart) {
                 console.error('humidChart is not defined');

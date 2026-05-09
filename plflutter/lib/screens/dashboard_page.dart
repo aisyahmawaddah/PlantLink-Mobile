@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-//import 'package:plflutter/screens/dashboard_functions.dart';
 import 'package:plflutter/screens/connect_sensor_page.dart';
 import 'package:plflutter/screens/configure_sensor_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +33,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<String> rainfallTimestamps = [];
   List<String> humidTempTimestamps = [];
   List<String> npkTimestamps = [];
+
+  // Filtered data per sensor group (null = show all)
+  List<double>? _filtPh; List<String>? _filtPhTs;
+  List<double>? _filtRain; List<String>? _filtRainTs;
+  List<double>? _filtHumid, _filtTemp; List<String>? _filtHumidTempTs;
+  List<double>? _filtN, _filtP, _filtK; List<String>? _filtNpkTs;
+
+  // Selected dates per chart group
+  Map<String, DateTime?> _filterStartDates = {};
+  Map<String, DateTime?> _filterEndDates = {};
 
   String channelName = '';
   String description = '';
@@ -122,6 +131,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       setState(() => isLoading = false);
       debugPrint('Error fetching data: $e');
+    }
+  }
+
+  Future<void> _applyDateFilter(String group, DateTime start, DateTime end) async {
+    final s = DateFormat('yyyy-MM-dd').format(start);
+    final e = DateFormat('yyyy-MM-dd').format(end);
+    try {
+      switch (group) {
+        case 'ph':
+          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/ph_data/$channelId/$s/$e/'));
+          if (r.statusCode == 200) {
+            final d = jsonDecode(r.body);
+            setState(() {
+              _filtPh = List<double>.from((d['ph_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtPhTs = List<String>.from(d['timestamps'] ?? []);
+            });
+          }
+          break;
+        case 'rainfall':
+          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/rainfall_data/$channelId/$s/$e/'));
+          if (r.statusCode == 200) {
+            final d = jsonDecode(r.body);
+            setState(() {
+              _filtRain = List<double>.from((d['rainfall_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtRainTs = List<String>.from(d['timestamps'] ?? []);
+            });
+          }
+          break;
+        case 'humidTemp':
+          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/humidity_temperature/$channelId/$s/$e/'));
+          if (r.statusCode == 200) {
+            final d = jsonDecode(r.body);
+            setState(() {
+              _filtHumid = List<double>.from((d['humid_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtTemp = List<double>.from((d['temp_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtHumidTempTs = List<String>.from(d['timestamps_humid_temp'] ?? []);
+            });
+          }
+          break;
+        case 'npk':
+          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/NPK/$channelId/$s/$e/'));
+          if (r.statusCode == 200) {
+            final d = jsonDecode(r.body);
+            setState(() {
+              _filtN = List<double>.from((d['nitrogen_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtP = List<double>.from((d['phosphorous_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtK = List<double>.from((d['potassium_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtNpkTs = List<String>.from(d['timestamps_NPK'] ?? []);
+            });
+          }
+          break;
+      }
+    } catch (e) {
+      debugPrint('Filter error: $e');
     }
   }
 
@@ -226,19 +289,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 16),
 
                   // ── Charts ───────────────────────────────────────
-                  _buildChartSection("pH Level Chart", _generateSpots(phData), phTimestamps),
+                  _buildChartSection("pH Level Chart",    _generateSpots(_filtPh ?? phData),           _filtPhTs ?? phTimestamps,               'ph'),
                   const SizedBox(height: 20),
-                  _buildChartSection("Rainfall Chart", _generateSpots(rainfallData), rainfallTimestamps),
+                  _buildChartSection("Rainfall Chart",    _generateSpots(_filtRain ?? rainfallData),   _filtRainTs ?? rainfallTimestamps,        'rainfall'),
                   const SizedBox(height: 20),
-                  _buildChartSection("Humidity Chart", _generateSpots(humidityData), humidTempTimestamps),
+                  _buildChartSection("Humidity Chart",    _generateSpots(_filtHumid ?? humidityData),  _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
                   const SizedBox(height: 20),
-                  _buildChartSection("Temperature Chart", _generateSpots(tempData), humidTempTimestamps),
+                  _buildChartSection("Temperature Chart", _generateSpots(_filtTemp ?? tempData),       _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
                   const SizedBox(height: 20),
-                  _buildChartSection("Nitrogen Chart", _generateSpots(nitrogenData), npkTimestamps),
+                  _buildChartSection("Nitrogen Chart",    _generateSpots(_filtN ?? nitrogenData),      _filtNpkTs ?? npkTimestamps,              'npk'),
                   const SizedBox(height: 20),
-                  _buildChartSection("Phosphorous Chart", _generateSpots(phosphorousData), npkTimestamps),
+                  _buildChartSection("Phosphorous Chart", _generateSpots(_filtP ?? phosphorousData),   _filtNpkTs ?? npkTimestamps,              'npk'),
                   const SizedBox(height: 20),
-                  _buildChartSection("Potassium Chart", _generateSpots(potassiumData), npkTimestamps),
+                  _buildChartSection("Potassium Chart",   _generateSpots(_filtK ?? potassiumData),     _filtNpkTs ?? npkTimestamps,              'npk'),
                   const SizedBox(height: 20),
 
                   // ── Crop Recommendations ─────────────────────────
@@ -274,7 +337,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildChartSection(String title, List<FlSpot> spots, List<String> timestamps) {
+  Widget _buildDatePicker(String filterGroup) {
+    final start = _filterStartDates[filterGroup];
+    final end = _filterEndDates[filterGroup];
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) setState(() => _filterStartDates[filterGroup] = picked);
+              },
+              child: Text(
+                start != null ? DateFormat('dd/MM/yyyy').format(start) : 'From: dd/mm/yyyy',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) setState(() => _filterEndDates[filterGroup] = picked);
+              },
+              child: Text(
+                end != null ? DateFormat('dd/MM/yyyy').format(end) : 'To: dd/mm/yyyy',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          ElevatedButton(
+            onPressed: start != null && end != null
+                ? () => _applyDateFilter(filterGroup, start, end)
+                : null,
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartSection(String title, List<FlSpot> spots, List<String> timestamps, String filterGroup) {
     String chartDataType = "";
     if (title == "pH Level Chart") chartDataType = "ph";
     else if (title == "Rainfall Chart") chartDataType = "rainfall";
@@ -290,6 +407,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           const Text("No data available", style: TextStyle(color: Colors.grey)),
+          _buildDatePicker(filterGroup),
         ],
       );
     }
@@ -378,6 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             backgroundColor: Colors.green,
           ),
         ),
+        _buildDatePicker(filterGroup),
       ],
     );
   }
@@ -425,11 +544,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final endDateController = TextEditingController();
     DateTime? selectedStartDate;
     DateTime? selectedEndDate;
-  
+
     String? generatedEmbedCode;
     bool embedGenerated = false;
     String shareMode = 'fixed';
-  
+
     showDialog(
       context: context,
       builder: (context) {
@@ -533,14 +652,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         setDialogState(() {
                           if (shareMode == 'live') {
                             generatedEmbedCode =
-                              '$_baseUrl/mychannel/embed/channel/$channelId/$chartDataType/live/';
+                                '$_baseUrl/mychannel/embed/channel/$channelId/$chartDataType/live/';
                             embedGenerated = true;
                           } else {
                             if (selectedStartDate == null || selectedEndDate == null) return;
                             final start = DateFormat('yyyy-MM-dd').format(selectedStartDate!);
                             final end = DateFormat('yyyy-MM-dd').format(selectedEndDate!);
                             generatedEmbedCode =
-                              '$_baseUrl/mychannel/embed/channel/$channelId/${chartDataType}Chart/$start/$end/';
+                                '$_baseUrl/mychannel/embed/channel/$channelId/${chartDataType}Chart/$start/$end/';
                             embedGenerated = true;
                           }
                         });
@@ -648,7 +767,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> shareChart(String chartTitle, List<FlSpot> spots, String chartDataType,
       String startDate, String endDate, String chartType, {bool isLive = false}) async {
-  
     final String url;
     if (isLive) {
       url = 'http://10.0.2.2:8000/mychannel/$channelId/share_chart/$chartDataType/live/';
@@ -657,37 +775,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final String formattedEndDate = _formatDateForApi(endDate);
       url = 'http://10.0.2.2:8000/mychannel/$channelId/share_chart/${chartDataType}Chart/$formattedStartDate/$formattedEndDate/';
     }
-  
+
     final payload = {
       "plantfeed_user_id": _plantfeedUserId,
       "chart_name": chartTitle,
       "data_points": spots.map((spot) => {"x": spot.x, "y": spot.y}).toList(),
     };
-  
+
     try {
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
-  
+
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData["success"] != null) {
           showDialog(
             context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: const Text("Chart Shared"),
-                content: Text(responseData["success"]),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text("OK"),
-                  ),
-                ],
-              );
-            },
+            builder: (context) => AlertDialog(
+              title: const Text("Chart Shared"),
+              content: Text(responseData["success"]),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
           );
         } else {
           _showErrorDialog("Failed to share the chart.");

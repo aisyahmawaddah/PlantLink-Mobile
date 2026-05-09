@@ -27,6 +27,16 @@
             <option value="bar">Bar Chart</option>
         </select>
     </div>
+    {% if is_live %}
+    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+        <label>From:</label>
+        <input type="date" id="liveDateStart" class="form-control form-control-sm" style="width:auto;">
+        <label>To:</label>
+        <input type="date" id="liveDateEnd" class="form-control form-control-sm" style="width:auto;">
+        <button id="applyDateBtn" class="btn btn-sm btn-primary">Apply</button>
+        <small id="lastUpdated" class="text-muted ms-2"></small>
+    </div>
+    {% endif %}
     <div class="chart-container">
         <div id="canvas" class="d-flex align-content-start flex-wrap justify-content-between">
             <div id="chart-spinner-container" class="text-center" style="width: 400px; height: 400px; display: none;">
@@ -56,36 +66,72 @@
             const channelId = "{{ channel_id }}";
             const startDate = "{{ start_date }}";
             const endDate = "{{ end_date }}";
-        
-            document.getElementById('chart-spinner-container').style.display = 'block';
-            document.getElementById('download').style.display = 'none';
             const isLive = "{{ is_live }}" === "True";
-            const url = isLive
-                ? `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/all/`
-                : `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
-            fetch(url, {
-                headers: { 'ngrok-skip-browser-warning': 'true' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('download').style.display = 'block';
-                document.getElementById('chart-spinner-container').style.display = 'none';
-                humidData = data.humid_values || [];
-                timestamps_temp_humid = data.timestamps_humid_temp || [];
-                const humidCanvasContainer = document.createElement('div');
-                humidCanvasContainer.className = 'canvas-container';
-                const humidCanvas = document.createElement('canvas');
-                humidCanvas.id = 'humidChart';
-                humidCanvas.width = 450;
-                humidCanvas.height = 400;
-                humidCanvasContainer.appendChild(humidCanvas);
-                document.getElementById('canvas').appendChild(humidCanvasContainer);
-                humidChart = createChart('humidChart', humidData, timestamps_temp_humid, 'Humidity Value');
-            })
-            .catch(error => {
-                console.error('Error fetching chart data:', error);
-                document.getElementById('chart-spinner-container').style.display = 'none';
-            });
+            let refreshInterval = null;
+        
+            function fetchData(start, end) {
+                let url;
+                if (start && end) {
+                    // user picked dates — filter by range
+                    url = `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${start}/${end}/`;
+                } else if (isLive) {
+                    // first load on live — show all data
+                    url = `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/all/`;
+                } else {
+                    // fixed timeline embed
+                    url = `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
+                }
+        
+                document.getElementById('chart-spinner-container').style.display = 'block';
+                document.getElementById('download').style.display = 'none';
+        
+                fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('download').style.display = 'block';
+                        document.getElementById('chart-spinner-container').style.display = 'none';
+                        humidData = data.humid_values || [];
+                        timestamps_temp_humid = data.timestamps_humid_temp || [];
+        
+                        if (!document.getElementById('humidChart')) {
+                            const humidCanvasContainer = document.createElement('div');
+                            humidCanvasContainer.className = 'canvas-container';
+                            const humidCanvas = document.createElement('canvas');
+                            humidCanvas.id = 'humidChart';
+                            humidCanvas.width = 450;
+                            humidCanvas.height = 400;
+                            humidCanvasContainer.appendChild(humidCanvas);
+                            document.getElementById('canvas').appendChild(humidCanvasContainer);
+                        }
+        
+                        humidChart = createChart('humidChart', humidData, timestamps_temp_humid, 'Humidity Value');
+        
+                        if (isLive) {
+                            document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching chart data:', error);
+                        document.getElementById('chart-spinner-container').style.display = 'none';
+                    });
+            }
+        
+            // load all data on first render
+            fetchData();
+        
+            if (isLive) {
+                refreshInterval = setInterval(() => fetchData(), 30000);
+        
+                document.getElementById('applyDateBtn').addEventListener('click', function () {
+                    const start = document.getElementById('liveDateStart').value;
+                    const end = document.getElementById('liveDateEnd').value;
+                    if (start && end) {
+                        clearInterval(refreshInterval);
+                        fetchData(start, end);
+                        refreshInterval = setInterval(() => fetchData(start, end), 30000);
+                    }
+                });
+            }
         
             document.getElementById('chartTypeSelect').addEventListener('change', function() {
                 if (humidChart) {
