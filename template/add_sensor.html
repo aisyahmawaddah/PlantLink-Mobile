@@ -13,31 +13,49 @@
     <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
 </head>
 <body class="d-flex justify-content-center align-items-center" style="min-height: 100vh; background: #f8f9fa;">
-    <div style="width: 100%; max-width: 500px;" id="shareChartModal">
-        <div class="modal-dialog" style="margin: 0;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="shareChartModalLabel">Add new sensor to this channel</h5>
-                </div>
-                <div class="modal-body">
-                    {% if message %}
-                        <div class="alert alert-info">{{ message }}</div>
-                    {% endif %}
-                    {% if error %}
-                        <div class="alert alert-danger">{{ error }}</div>
-                    {% endif %}
-                    <form id="shareChartForm" method="POST" action="">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="apiKey" class="form-label">API Key</label>
-                            <input type="text" class="form-control" id="apiKey" name="apiKey" value="{{ API_KEY }}" required>
+    <div style="width: 100%; max-width: 500px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add new sensor to this channel</h5>
+            </div>
+            <div class="modal-body">
+                {% if message %}
+                    <div class="alert alert-info">{{ message }}</div>
+                {% endif %}
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form id="shareChartForm" method="POST" action="">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="apiKey" class="form-label">API Key</label>
+                        <input type="text" class="form-control" id="apiKey" name="apiKey" value="{{ API_KEY }}" required>
+                    </div>
+                    {% if API_KEY %}
+                        <div class="alert alert-warning">
+                            Current API key: <strong>{{ API_KEY }}</strong>. Submitting will replace it.
                         </div>
-                        <a href="{% url 'view_channel_sensor' channel_id=channel_id %}" type="button" class="btn btn-secondary">Close</a>
-                        <button type="submit" class="btn btn-primary">Connect sensor</button>
-                    </form>
-                </div>
+                    {% endif %}
+                    <a href="{% url 'view_channel_sensor' channel_id=channel_id %}" type="button" class="btn btn-secondary">Close</a>
+                    <button type="submit" class="btn btn-primary">Connect sensor</button>
+                </form>
             </div>
         </div>
     </div>
+
+    <script>
+        document.getElementById('shareChartForm').addEventListener('submit', function(e) {
+            const existingKey = "{{ API_KEY }}";
+            const newKey = document.getElementById('apiKey').value.trim();
+            if (existingKey && newKey !== existingKey) {
+                const confirmed = confirm(
+                    'This channel already has API key "' + existingKey + '".\n\nReplace it with "' + newKey + '"?'
+                );
+                if (!confirmed) {
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
 </body>
 </html>
