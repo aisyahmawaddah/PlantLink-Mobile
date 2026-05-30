@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-//import 'manage_sensor_page.dart';
 import 'package:plflutter/screens/sensor_service.dart';
 import 'package:plflutter/screens/dashboard_page.dart';
 
@@ -21,83 +20,95 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
     _sensorData = SensorService().fetchSensors(widget.channelId);
   }
 
-  // Edit sensor name action
-  void _editSensorName(String sensorId, String currentName, String sensorType, String apiKey) {
-    TextEditingController controller = TextEditingController(text: currentName);
+  void _editSensorName(String sensorId, String currentName, String sensorType, String apiKey, List<dynamic> allSensors) {
+    final controller = TextEditingController(text: currentName);
+    String? errorText;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Sensor Name'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: 'Sensor Name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final newName = controller.text;
-                try {
-                  await SensorService().editSensor(
-                    channelId: widget.channelId,
-                    sensorType: sensorType,
-                    sensorId: sensorId,
-                    newSensorName: newName,
-                    apiKey: apiKey,
-                  );
-                  setState(() {
-                    _sensorData = SensorService().fetchSensors(widget.channelId);
-                  });
-                  Navigator.pop(context); // Close dialog 
-                  // Navigate to the ConfigureSensorPage (refresh new data)
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ConfigureSensorPage(channelId: widget.channelId),
-                    ),
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sensor name updated successfully')),
-                  );
-                } catch (e) {
-                  print('Error updating sensor: $e');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to update sensor name')),
-                  );
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Edit Sensor Name'),
+              content: TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  labelText: 'Sensor Name',
+                  errorText: errorText,
+                ),
+                onChanged: (_) {
+                  if (errorText != null) setStateDialog(() => errorText = null);
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final newName = controller.text.trim();
+                    if (newName.isEmpty) {
+                      setStateDialog(() => errorText = 'Sensor name cannot be empty.');
+                      return;
+                    }
+                    final isDuplicate = allSensors.any((s) =>
+                        s['sensor_id'] != sensorId &&
+                        (s['sensor_name'] ?? '').toString().toLowerCase() == newName.toLowerCase());
+                    if (isDuplicate) {
+                      setStateDialog(() => errorText = 'Sensor name already exists.');
+                      return;
+                    }
+                    try {
+                      await SensorService().editSensor(
+                        channelId: widget.channelId,
+                        sensorType: sensorType,
+                        sensorId: sensorId,
+                        newSensorName: newName,
+                        apiKey: apiKey,
+                      );
+                      if (!mounted) return;
+                      final messenger = ScaffoldMessenger.of(context);
+                      Navigator.pop(context);
+                      setState(() {
+                        _sensorData = SensorService().fetchSensors(widget.channelId);
+                      });
+                      messenger.showSnackBar(const SnackBar(
+                        content: Text('Sensor name updated successfully'),
+                        backgroundColor: Colors.green,
+                      ));
+                    } catch (e) {
+                      setStateDialog(() => errorText = 'Failed to update sensor name.');
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  // Delete sensor action
-  void _deleteSensor(String sensorId, String sensorType) {
+  void _deleteSensor(String sensorId, String sensorType, String sensorName) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Delete Sensor'),
-          content: const Text('Are you sure you want to delete this sensor?'),
+          content: Text('Are you sure you want to delete "$sensorName"?\n\nThis will permanently remove all its data.'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-              },
+              onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
               onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(context);
                 try {
                   await SensorService().deleteSensor(
                     channelId: widget.channelId,
@@ -107,23 +118,16 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
                   setState(() {
                     _sensorData = SensorService().fetchSensors(widget.channelId);
                   });
-                  Navigator.pop(context); // Close dialog
-                  // Navigate to the DashboardScreen
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DashboardScreen(channelId: widget.channelId),
-                    ),
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sensor deleted successfully')),
-                  );
+                  messenger.showSnackBar(const SnackBar(
+                    content: Text('Sensor deleted successfully'),
+                    backgroundColor: Colors.green,
+                  ));
                 } catch (e) {
                   if (!mounted) return;
-                  print('Error deleting sensor: $e');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to delete sensor')),
-                  );
+                  messenger.showSnackBar(SnackBar(
+                    content: Text('Failed to delete sensor: $e'),
+                    backgroundColor: Colors.red,
+                  ));
                 }
               },
               child: const Text('Delete'),
@@ -139,6 +143,8 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configure Sensors'),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _sensorData,
@@ -147,7 +153,7 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-                    } else if (!snapshot.hasData) {
+          } else if (!snapshot.hasData) {
             return const Center(child: Text('No sensor data available.'));
           } else if (snapshot.data!['sensors'].isEmpty) {
             final apiKey = snapshot.data!['API_KEY_VALUE'];
@@ -172,12 +178,11 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
             );
           } else {
             final apiKey = snapshot.data!['API_KEY_VALUE'];
-            final sensors = snapshot.data!['sensors'];
+            final sensors = snapshot.data!['sensors'] as List<dynamic>;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Display API Key
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
@@ -186,52 +191,21 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
                   ),
                 ),
                 const Divider(),
-
-                // Unset Sensor Button
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        await SensorService().unsetSensor(widget.channelId);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Sensor unset successfully')),
-                        );
-                        // Navigate to DashboardScreen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DashboardScreen(channelId: widget.channelId),
-                          ),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to unset sensor: $e')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.warning, color: Colors.white),
-                    label: const Text('Unset Sensor'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                  ),
-                ),
-                const Divider(),
-
-                // Display Sensor List
                 Expanded(
                   child: ListView.builder(
                     itemCount: sensors.length,
                     itemBuilder: (context, index) {
                       final sensor = sensors[index];
+                      final sensorName = sensor['sensor_name'] ?? '';
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                         child: ListTile(
                           title: Text(
-                            (sensor['sensor_name'] != null)
-                                ? sensor['sensor_name']
-                                : 'Unnamed Sensor',
+                              sensorName.trim().isNotEmpty ? sensorName : '[No Sensor Name]',
+                              style: TextStyle(
+                                  color: sensorName.trim().isNotEmpty ? null : Colors.grey,
+                                  fontStyle: sensorName.trim().isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                              ),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,26 +214,39 @@ class _ConfigureSensorPageState extends State<ConfigureSensorPage> {
                               Text('Data Count: ${sensor['sensor_data']}'),
                             ],
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _editSensorName(
-                                  sensor['sensor_id'],
-                                  sensor['sensor_name'],
-                                  sensor['sensor_type'],
-                                  apiKey,
+                          trailing: SizedBox(
+                            width: 80,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 36,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                                    onPressed: () => _editSensorName(
+                                      sensor['sensor_id'],
+                                      sensorName,
+                                      sensor['sensor_type'],
+                                      apiKey,
+                                      sensors,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteSensor(
-                                  sensor['sensor_id'],
-                                  sensor['sensor_type'],
+                                SizedBox(
+                                  width: 36,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                    onPressed: () => _deleteSensor(
+                                      sensor['sensor_id'],
+                                      sensor['sensor_type'],
+                                      sensorName,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
