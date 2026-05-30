@@ -1,5 +1,5 @@
-{% load compress %} 
-{% load static %} 
+{% load compress %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,42 +11,155 @@
     {% bootstrap_javascript %}
     <link rel="stylesheet" href="{% static 'css/edit_channel.css' %}">
     <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
-
 </head>
 <body>
     <div class="" id="shareChartModal" tabindex="-1" aria-labelledby="shareChartModalLabel">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="shareChartModalLabel">Create Channel</h5>
+                    <h5 class="modal-title">Create Channel</h5>
                 </div>
                 <div class="modal-body">
-                    <form id="shareChartForm" method="POST" action="">
+
+                    {% if error %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    <form id="createChannelForm" method="POST" action="">
                         {% csrf_token %}
+
                         <div class="mb-3">
                             <label for="channel_name" class="form-label">Channel Name</label>
-                            <input type="text" class="form-control" id="channel_name" name="channel_name" required>
+                            <input type="text" class="form-control" id="channel_name" name="channel_name" maxlength="20" required>
+                            <div class="invalid-feedback">Channel name is required.</div>
                         </div>
+
                         <div class="form-floating mb-3">
-                            <textarea class="form-control" placeholder="Leave a comment here" id="description" name="description" style="height: 100px"></textarea>
+                            <textarea class="form-control" id="description" name="description" placeholder="Description" style="height: 100px" minlength="5" maxlength="50" required></textarea>
                             <label for="description">Description</label>
-                          </div>
-                        <div class="mb-3">
-                            <label for="location" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="location" name="location"  required>
+                            <div class="invalid-feedback">Description is required (min 5 characters).</div>
                         </div>
-                        
-                        <label for="privacy" class="form-label">Privacy</label>
-                        <select class="form-select mb-3" id="privacy" name="privacy" aria-label="Default select example">
-                            <option value="public" >Public</option>
-                            <option value="private" selected>Private</option>
-                        </select>
+
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <select class="form-select mb-2" id="state_select" onchange="populateDistricts()">
+                                <option value="">-- Select State --</option>
+                            </select>
+                            <select class="form-select" id="district_select">
+                                <option value="">-- Select District --</option>
+                            </select>
+                            <input type="hidden" id="location" name="location" value="">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="privacy" class="form-label">Privacy</label>
+                            <select class="form-select" id="privacy" name="privacy">
+                                <option value="public">Public</option>
+                                <option value="private" selected>Private</option>
+                            </select>
+                        </div>
+
                         <a href="{% url 'channels' %}" type="button" class="btn btn-secondary">Close</a>
-                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+    const locationData = {
+        "Johor": ["Johor Bahru","Tebrau","Pasir Gudang","Bukit Indah","Skudai","Kluang","Batu Pahat","Muar","Ulu Tiram","Senai","Segamat","Kulai","Kota Tinggi","Pontian Kechil","Tangkak","Bukit Bakri","Yong Peng","Pekan Nenas","Labis","Mersing","Simpang Renggam","Parit Raja","Kelapa Sawit","Buloh Kasap","Chaah"],
+        "Kedah": ["Sungai Petani","Alor Setar","Kulim","Jitra / Kubang Pasu","Baling","Pendang","Langkawi","Yan","Sik","Kuala Nerang","Pokok Sena","Bandar Baharu"],
+        "Kelantan": ["Kota Bharu","Pangkal Kalong","Tanah Merah","Peringat","Wakaf Baru","Kadok","Pasir Mas","Gua Musang","Kuala Krai","Tumpat"],
+        "Melaka": ["Bandaraya Melaka","Bukit Baru","Ayer Keroh","Klebang","Masjid Tanah","Sungai Udang","Batu Berendam","Alor Gajah","Bukit Rambai","Ayer Molek","Bemban","Kuala Sungai Baru","Pulau Sebang","Jasin"],
+        "Negeri Sembilan": ["Seremban","Port Dickson","Nilai","Bahau","Tampin","Kuala Pilah"],
+        "Pahang": ["Kuantan","Temerloh","Bentong","Mentakab","Raub","Jerantut","Pekan","Kuala Lipis","Bandar Jengka","Bukit Tinggi"],
+        "Perak": ["Ipoh","Taiping","Sitiawan","Simpang Empat","Teluk Intan","Batu Gajah","Lumut","Kampung Koh","Kuala Kangsar","Sungai Siput Utara","Tapah","Bidor","Parit Buntar","Ayer Tawar","Bagan Serai","Tanjung Malim","Lawan Kuda Baharu","Pantai Remis","Kampar"],
+        "Perlis": ["Kangar","Kuala Perlis"],
+        "Pulau Pinang": ["Bukit Mertajam","Georgetown","Sungai Ara","Gelugor","Ayer Itam","Butterworth","Perai","Nibong Tebal","Permatang Kuching","Tanjung Tokong","Kepala Batas","Tanjung Bungah","Juru"],
+        "Sabah": ["Kota Kinabalu","Sandakan","Tawau","Lahad Datu","Keningau","Putatan","Donggongon","Semporna","Kudat","Kunak","Papar","Ranau","Beaufort","Kinarut","Kota Belud"],
+        "Sarawak": ["Kuching","Miri","Sibu","Bintulu","Limbang","Sarikei","Sri Aman","Kapit","Batu Delapan Bazaar","Kota Samarahan"],
+        "Selangor": ["Subang Jaya","Klang","Ampang Jaya","Shah Alam","Petaling Jaya","Cheras","Kajang","Selayang Baru","Rawang","Semenyih","Banting","Balakong","Gombak Setia","Kuala Selangor","Serendah","Bukit Beruntung","Sepang"],
+        "Terengganu": ["Kuala Terengganu","Chukai","Dungun","Kerteh","Kuala Berang","Marang","Paka","Jerteh"],
+        "Kuala Lumpur": ["Chow Kit","Bangsar","Cheras","Kepong","Setapak","Wangsa Maju","Bukit Jalil","Damansara","Titiwangsa","Brickfields","Mont Kiara"],
+        "Labuan": ["Labuan Town","Rancha-Rancha","Layang-Layang","Membedai"],
+        "Putrajaya": ["Putrajaya"]
+    };
+
+    const stateSelect = document.getElementById('state_select');
+    const districtSelect = document.getElementById('district_select');
+    const locationHidden = document.getElementById('location');
+
+    Object.keys(locationData).forEach(state => {
+        const opt = document.createElement('option');
+        opt.value = state;
+        opt.textContent = state;
+        stateSelect.appendChild(opt);
+    });
+
+    function populateDistricts(preselect) {
+        const state = stateSelect.value;
+        districtSelect.innerHTML = '<option value="">-- Select District --</option>';
+        if (state && locationData[state]) {
+            locationData[state].forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                districtSelect.appendChild(opt);
+            });
+            if (preselect) districtSelect.value = preselect;
+        }
+        updateLocation();
+    }
+
+    function updateLocation() {
+        const s = stateSelect.value;
+        const d = districtSelect.value;
+        locationHidden.value = (s && d) ? s + ', ' + d : s || '';
+    }
+
+    districtSelect.addEventListener('change', updateLocation);
+
+    // Form validation
+    document.getElementById('createChannelForm').addEventListener('submit', function(e) {
+        let valid = true;
+
+        const nameField = document.getElementById('channel_name');
+        if (!nameField.value.trim()) {
+            nameField.classList.add('is-invalid');
+            valid = false;
+        } else {
+            nameField.classList.remove('is-invalid');
+        }
+
+        const descField = document.getElementById('description');
+        if (!descField.value.trim() || descField.value.trim().length < 5) {
+            descField.classList.add('is-invalid');
+            valid = false;
+        } else {
+            descField.classList.remove('is-invalid');
+        }
+
+        if (!stateSelect.value || !districtSelect.value) {
+            stateSelect.classList.add('is-invalid');
+            valid = false;
+        } else {
+            stateSelect.classList.remove('is-invalid');
+        }
+
+        if (!valid) {
+            e.preventDefault();
+            return;
+        }
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creating...';
+    });
+    </script>
 </body>
 </html>
