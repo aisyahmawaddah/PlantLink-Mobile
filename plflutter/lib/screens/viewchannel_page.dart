@@ -19,14 +19,26 @@ class ViewChannel extends StatelessWidget {
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(context, '/channels/create');
-            },
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text(
-              'Create',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/channels/create');
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text(
+                'Create',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF4CAF50),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
             ),
           ),
         ],
@@ -249,36 +261,18 @@ class _ChannelsListState extends State<ChannelsList> {
   }
 
   void _showDeleteDialog(Map<String, dynamic> channel) {
-    if (channel['sensor'] != null && channel['sensor'].isNotEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Cannot Delete Channel'),
-            content: const Text(
-                'This channel has sensors connected. Please delete the sensors first before deleting the channel.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    } else {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return DeleteChannelDialog(
-            channelId: channel['_id'].toString(),
-            onDelete: _loadChannels,
-          );
-        },
-      );
-    }
+    final int sensorCount = (channel['sensor_count'] ?? 0) as int;
+  
+    showDialog(
+      context: context,
+      builder: (context) {
+        return DeleteChannelDialog(
+          channelId: channel['_id'].toString(),
+          sensorCount: sensorCount,
+          onDelete: _loadChannels,
+        );
+      },
+    );
   }
 
   @override

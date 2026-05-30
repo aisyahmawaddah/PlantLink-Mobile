@@ -42,4 +42,6 @@ urlpatterns = [
     path('<str:channel_id>/add_sensor', views.add_sensor, name="add_sensor"),
     path('<str:channel_id>/unset_sensor', views.unset_sensor, name="unset_sensor"),
     path('<str:channel_id>/delete_sensor/<str:sensor_type>/', views.delete_sensor, name="delete_sensor"),
+    path('<str:channel_id>/permit_API/', views.permit_API, name='permit_API'),
+    path('<str:channel_id>/forbid_API/', views.forbid_API, name='forbid_API'),
 ]

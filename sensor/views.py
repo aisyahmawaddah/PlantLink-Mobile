@@ -306,6 +306,7 @@ def combined_post(request):
                 channel = collection_channel.find_one({"API_KEY": API_KEY})
                 if channel:
                     allow_API = channel.get('allow_API', '')
+                    print(f"[combined_post] API_KEY={API_KEY}, allow_API='{allow_API}'")
                     if allow_API != 'permit':
                         return JsonResponse({'error': 'API access is not permitted for this API_KEY'}, status=403)
                 else:
