@@ -222,6 +222,7 @@
                 document.getElementById('empty_sensor').style.display = 'block';
             }
         
+            const originalChartData = {};
             fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
                 .then(response => response.json())
                 .then(data => {
@@ -269,6 +270,7 @@
                             phCanvasContainer.appendChild(phCanvas);
                             document.getElementById('canvas').appendChild(phCanvasContainer);
                             phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
+                            originalChartData['phChart'] = { data: phData, labels: timestamps, label: 'PH Value' };
                             addDropdown(phCanvasContainer, phChart);
                             addShareButton(phCanvasContainer, phCanvas.id, "phChart");
                             addDatePicker(phCanvasContainer, 'phChart');
@@ -284,6 +286,7 @@
                             rainfallCanvasContainer.appendChild(rainfallCanvas);
                             document.getElementById('canvas').appendChild(rainfallCanvasContainer);
                             rainfallChart = createChart(rainfallCanvas.id, rainfallData, rainfall_timestamps, 'Rainfall Value');
+                            originalChartData['rainfallChart'] = { data: rainfallData, labels: rainfall_timestamps, label: 'Rainfall Value' };
                             addDropdown(rainfallCanvasContainer, rainfallChart);
                             addShareButton(rainfallCanvasContainer, rainfallCanvas.id, "rainfallChart");
                             addDatePicker(rainfallCanvasContainer, 'rainfallChart');
@@ -299,6 +302,7 @@
                             humidCanvasContainer.appendChild(humidCanvas);
                             document.getElementById('canvas').appendChild(humidCanvasContainer);
                             humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
+                            originalChartData['humidChart'] = { data: humidData, labels: timestamps_temp_humid, label: 'Humidity Value' };
                             addDropdown(humidCanvasContainer, humidChart);
                             addShareButton(humidCanvasContainer, humidCanvas.id, "humidityChart");
                             addDatePicker(humidCanvasContainer, 'humidChart'); 
@@ -314,6 +318,7 @@
                             tempCanvasContainer.appendChild(tempCanvas);
                             document.getElementById('canvas').appendChild(tempCanvasContainer);
                             tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
+                            originalChartData['tempChart'] = { data: tempData, labels: timestamps_temp_humid, label: 'Temperature Value' };
                             addDropdown(tempCanvasContainer, tempChart);
                             addShareButton(tempCanvasContainer, tempCanvas.id, "temperatureChart");
                             addDatePicker(tempCanvasContainer, 'tempChart');
@@ -329,6 +334,7 @@
                             nitrogenCanvasContainer.appendChild(nitrogenCanvas);
                             document.getElementById('canvas').appendChild(nitrogenCanvasContainer);
                             nitrogenChart = createChart(nitrogenCanvas.id, nitrogenData, timestamps_NPK, 'Nitrogen Value');
+                            originalChartData['nitrogenChart'] = { data: nitrogenData, labels: timestamps_NPK, label: 'Nitrogen Value' };
                             addDropdown(nitrogenCanvasContainer, nitrogenChart);
                             addShareButton(nitrogenCanvasContainer, nitrogenCanvas.id, "nitrogenChart");
                             addDatePicker(nitrogenCanvasContainer, 'nitrogenChart');
@@ -344,6 +350,7 @@
                             phosphorousCanvasContainer.appendChild(phosphorousCanvas);
                             document.getElementById('canvas').appendChild(phosphorousCanvasContainer);
                             phosphorousChart = createChart(phosphorousCanvas.id, phosphorousData, timestamps_NPK, 'phosphorous Value');
+                            originalChartData['phosphorousChart'] = { data: phosphorousData, labels: timestamps_NPK, label: 'phosphorous Value' };
                             addDropdown(phosphorousCanvasContainer, phosphorousChart);
                             addShareButton(phosphorousCanvasContainer, phosphorousCanvas.id, "phosphorousChart");
                             addDatePicker(phosphorousCanvasContainer, 'phosphorousChart');
@@ -359,6 +366,7 @@
                             potassiumCanvasContainer.appendChild(potassiumCanvas);
                             document.getElementById('canvas').appendChild(potassiumCanvasContainer);
                             potassiumChart = createChart(potassiumCanvas.id, potassiumData, timestamps_NPK, 'Potassium Value');
+                            originalChartData['potassiumChart'] = { data: potassiumData, labels: timestamps_NPK, label: 'Potassium Value' };
                             addDropdown(potassiumCanvasContainer, potassiumChart);
                             addShareButton(potassiumCanvasContainer, potassiumCanvas.id, "potassiumChart");
                             addDatePicker(potassiumCanvasContainer, 'potassiumChart');
@@ -718,6 +726,30 @@
             });
         });
         
+        function reloadOriginalChart(canvasId) {
+            const orig = originalChartData[canvasId];
+            if (!orig) return;
+            const canvas = document.getElementById(canvasId);
+            const existing = Chart.getChart(canvas);
+            const type = existing ? existing.config.type : 'line';
+            if (existing) existing.destroy();
+            new Chart(canvas, {
+                type: type,
+                data: {
+                    labels: orig.labels,
+                    datasets: [{ label: orig.label, data: orig.data, fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                    }]
+                },
+                options: {
+                    elements: { line: { tension: 0.1 } },
+                    scales: { y: { beginAtZero: false } },
+                    plugins: { tooltip: { mode: 'index', intersect: false } }
+                }
+            });
+        }
+        
         function addDatePicker(container, canvasId) {
             const wrapper = document.createElement('div');
             wrapper.className = 'd-flex align-items-center gap-2 mt-1 flex-wrap';
@@ -728,7 +760,6 @@
             startInput.type = 'date';
             startInput.className = 'form-control form-control-sm';
             startInput.style.width = 'auto';
-            // no .value — shows dd/mm/yyyy placeholder
         
             const toLabel = document.createElement('small');
             toLabel.innerText = 'To:';
@@ -736,17 +767,35 @@
             endInput.type = 'date';
             endInput.className = 'form-control form-control-sm';
             endInput.style.width = 'auto';
-            // no .value — shows dd/mm/yyyy placeholder
         
             const applyBtn = document.createElement('button');
             applyBtn.className = 'btn btn-sm btn-outline-secondary';
             applyBtn.innerText = 'Apply';
             applyBtn.addEventListener('click', function () {
-                if (startInput.value && endInput.value)
-                    fetchChartDataByDate(canvasId, startInput.value, endInput.value);
+                if (!startInput.value && !endInput.value) {
+                    reloadOriginalChart(canvasId);
+                    return;
+                }
+                if (!startInput.value || !endInput.value) return;
+                const start = new Date(startInput.value);
+                const end = new Date(endInput.value);
+                if (start > end) {
+                    alert('Start date cannot be later than end date.');
+                    return;
+                }
+                fetchChartDataByDate(canvasId, startInput.value, endInput.value);
             });
         
-            wrapper.append(fromLabel, startInput, toLabel, endInput, applyBtn);
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'btn btn-sm btn-outline-danger ms-1';
+            clearBtn.innerText = 'Clear';
+            clearBtn.addEventListener('click', function () {
+                startInput.value = '';
+                endInput.value = '';
+                reloadOriginalChart(canvasId);
+            });
+        
+            wrapper.append(fromLabel, startInput, toLabel, endInput, applyBtn, clearBtn);
             container.appendChild(wrapper);
         }
 

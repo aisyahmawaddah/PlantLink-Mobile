@@ -110,6 +110,8 @@ def channels(request):
             'channel_count': len(channel_list),
             'public_channel': public_channel,
             'total_sensor': total_sensor,
+            'message': request.GET.get('message', ''),   # ← new
+            'error': request.GET.get('error', ''),       # ← new
         }
         return render(request, 'channels.html', context)
     return JsonResponse({"success": False, "error": "Database connection error"})
@@ -277,48 +279,99 @@ def create_channel(request):
 
 @csrf_exempt
 def update_channel(request, channel_id):
-    if request.method == 'PUT':
+    if request.method in ('GET', 'POST') and 'username' not in request.COOKIES:
+        return redirect('logPlantFeed')
+
+    if request.method == 'GET':
         try:
-            # Parse the incoming data
-            data = json.loads(request.body)
-            channel_name = data.get('channel_name')
-
-            if not channel_name:
-                return JsonResponse({'error': 'Channel name is required.'}, status=400)
-
-            # Connect to MongoDB
             db, collection = connect_to_mongodb('Channel', 'dashboard')
-
-            existing_channel = collection.find_one({
-                "channel_name": channel_name,
-                "_id": {"$ne": ObjectId(channel_id)}  # Exclude the current channel from the check
+            if collection is None:
+                return JsonResponse({'error': 'Database connection error'}, status=500)
+            channel = collection.find_one({"_id": ObjectId(channel_id)})
+            if not channel:
+                return JsonResponse({'error': 'Channel not found'}, status=404)
+            return render(request, 'edit_channel.html', {
+                'channel_id': channel_id,
+                'channel_name': channel.get('channel_name', ''),
+                'description': channel.get('description', ''),
+                'location': channel.get('location', ''),
+                'privacy': channel.get('privacy', 'public'),
             })
-            
-            # Check if a channel with the same name already exists
-            if existing_channel:
-                return JsonResponse(
-                    {'error': 'A channel with this name already exists.'},
-                    status=400
-                )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
-            # Find the channel and update it
+    if request.method in ('PUT', 'POST'):
+        try:
+            content_type = request.content_type or ''
+            if request.method == 'PUT' or 'application/json' in content_type:
+                data = json.loads(request.body)
+                is_api = True
+            else:
+                data = request.POST
+                is_api = False
+
+            channel_name = (data.get('channel_name') or '').strip()
+            description = (data.get('description') or '').strip()
+            location = (data.get('location') or '').strip()
+            privacy = data.get('privacy', 'public')
+
+            def render_form(error_msg):
+                return render(request, 'edit_channel.html', {
+                    'channel_id': channel_id,
+                    'channel_name': channel_name,
+                    'description': description,
+                    'location': location,
+                    'privacy': privacy,
+                    'error': error_msg,
+                })
+
+            # Empty field validation
+            if not channel_name:
+                if is_api:
+                    return JsonResponse({'error': 'Channel name is required.'}, status=400)
+                return render_form('Channel name is required.')
+
+            if not description or len(description) < 5:
+                if is_api:
+                    return JsonResponse({'error': 'Description is required (min 5 characters).'}, status=400)
+                return render_form('Description is required (min 5 characters).')
+
+            if not location:
+                if is_api:
+                    return JsonResponse({'error': 'Location is required.'}, status=400)
+                return render_form('Location is required.')
+
+            db, collection = connect_to_mongodb('Channel', 'dashboard')
+            if collection is None:
+                if is_api:
+                    return JsonResponse({'error': 'Database connection error'}, status=500)
+                return render_form('Database connection error. Please try again.')
+
+            # Duplicate name check
+            if collection.find_one({"channel_name": channel_name, "_id": {"$ne": ObjectId(channel_id)}}):
+                if is_api:
+                    return JsonResponse({'error': 'Channel name already exists.'}, status=400)
+                return render_form('Channel name already exists. Please choose a different name.')
+
             now = datetime.now()
-            formatted_date = now.strftime("%d/%m/%Y")
             result = collection.update_one(
-                {"_id": ObjectId(channel_id)},  # Match the channel by its ID
+                {"_id": ObjectId(channel_id)},
                 {"$set": {
-                    "channel_name": data.get('channel_name'),
-                    "description": data.get('description'),
-                    "location": data.get('location'),
-                    "privacy": data.get('privacy'),
-                    "date_modified": formatted_date
+                    "channel_name": channel_name,
+                    "description": description,
+                    "location": location,
+                    "privacy": privacy,
+                    "date_modified": now.strftime("%d/%m/%Y")
                 }}
             )
 
             if result.matched_count == 0:
                 return JsonResponse({'error': 'Channel not found'}, status=404)
 
-            return JsonResponse({'message': 'Channel updated successfully'}, status=200)
+            if is_api:
+                return JsonResponse({'message': 'Channel updated successfully'}, status=200)
+            from urllib.parse import quote
+            return redirect('/mychannel/?message=' + quote('Channel updated successfully.'))
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
@@ -327,17 +380,39 @@ def update_channel(request, channel_id):
 
 @csrf_exempt
 def delete_channel(request, channel_id):
-    if request.method == 'DELETE':
+    # Only block web users, not mobile API (DELETE)
+    if request.method in ('GET', 'POST') and 'username' not in request.COOKIES:
+        return redirect('logPlantFeed')
+
+    if request.method in ('DELETE', 'GET', 'POST'):
         try:
-            # Connect to MongoDB
             db, collection = connect_to_mongodb('Channel', 'dashboard')
+            if collection is None:
+                if request.method in ('GET', 'POST'):
+                    return redirect('/mychannel/?error=Database connection error')
+                return JsonResponse({'error': 'Database connection error'}, status=500)
 
-            # Find the channel by ID and delete it
-            result = collection.delete_one({"_id": ObjectId(channel_id)})
-
-            if result.deleted_count == 0:
+            channel = collection.find_one({"_id": ObjectId(channel_id)})
+            if not channel:
+                if request.method in ('GET', 'POST'):
+                    return redirect('/mychannel/?error=Channel not found')
                 return JsonResponse({'error': 'Channel not found'}, status=404)
 
+            has_sensors = bool(channel.get('API_KEY', '').strip())
+
+            result = collection.delete_one({"_id": ObjectId(channel_id)})
+            if result.deleted_count == 0:
+                if request.method in ('GET', 'POST'):
+                    return redirect('/mychannel/?error=Channel not found')
+                return JsonResponse({'error': 'Channel not found'}, status=404)
+
+            if request.method in ('GET', 'POST'):
+                if has_sensors:
+                    msg = 'Channel deleted. Linked sensors have been unlinked.'
+                else:
+                    msg = 'Channel deleted successfully.'
+                from urllib.parse import quote
+                return redirect(f'/mychannel/?message={quote(msg)}')
             return JsonResponse({'message': 'Channel deleted successfully'}, status=200)
 
         except Exception as e:
@@ -487,7 +562,6 @@ def getDashboardData(request, channel_id):
                 "API": API_KEY,
             }
             if humid_values or ph_values or rainfall_values or nitrogen_values or potassium_values or phosphorous_value or temp_values:
-                # Load the trained Random Forest model
                 model = load_trained_model()
                 if model:
                     # Prepare input data for model prediction
@@ -519,7 +593,7 @@ def getDashboardData(request, channel_id):
                     # Add the crop recommendation to the context
                     context["crop_recommendations"] = crop_recommendations
 
-                return JsonResponse(context)
+            return JsonResponse(context)
                 
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
@@ -859,7 +933,7 @@ def getHumidityTemperatureData(request, channel_id, start_date, end_date):
             timestamps_humid_temp = []
             API = channel.get('API_KEY', '')
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
             
             # Fetch data from sensor:DHT11
             db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
@@ -904,7 +978,7 @@ def getNPKData(request, channel_id, start_date, end_date):
             timestamps_NPK = []
             API = channel.get('API_KEY', '')
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
             
             # Fetch data from sensor:DHT11
             db_NPK, collection_NPK = connect_to_mongodb('sensor', 'NPK')
@@ -946,36 +1020,27 @@ def getPHData(request, channel_id, start_date, end_date):
     db, collection = connect_to_mongodb('Channel', 'dashboard')
     if db is not None and collection is not None:
         channel = collection.find_one({"_id": _id})
-
         if channel:
-            sensor = channel.get('sensor', '')
             ph_values = []
             timestamps = []
             API = channel.get('API_KEY', '')
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
 
             db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
             if db_ph is not None and collection_ph is not None:
                 ph_data = collection_ph.find_one({"API_KEY": API})
                 if ph_data:
                     for data_point in ph_data.get('sensor_data', []):
-                        ph_values.append(data_point.get('ph_value', ''))
                         timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                        timestamps.append(formatted_timestamp)
+                        if start_date <= timestamp_obj <= end_date:
+                            ph_values.append(data_point.get('ph_value', ''))
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            timestamps.append(formatted_timestamp)
 
-            context = {
-                "channel_id": channel_id,
-                "ph_values": ph_values,
-                "timestamps": timestamps,
-                "API": API,
-            }
-            return JsonResponse(context)
+            return JsonResponse({"channel_id": channel_id, "ph_values": ph_values, "timestamps": timestamps, "API": API})
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
-    else:
-        print("Error connecting to MongoDB.")
 
 # For retrieve rainfall data - DONE
 def getRainfallData(request, channel_id, start_date, end_date):
@@ -983,36 +1048,27 @@ def getRainfallData(request, channel_id, start_date, end_date):
     db, collection = connect_to_mongodb('Channel', 'dashboard')
     if db is not None and collection is not None:
         channel = collection.find_one({"_id": _id})
-
         if channel:
-            sensor = channel.get('sensor', '')
             rainfall_values = []
             rainfall_timestamps = []
             API = channel.get('API_KEY', '')
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
-            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
 
             db_rainfall, collection_rainfall = connect_to_mongodb('sensor', 'rainfall')
             if db_rainfall is not None and collection_rainfall is not None:
                 rainfall_data = collection_rainfall.find_one({"API_KEY": API})
                 if rainfall_data:
                     for data_point in rainfall_data.get('sensor_data', []):
-                        rainfall_values.append(data_point.get('rainfall_value', ''))
                         timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                        rainfall_timestamps.append(formatted_timestamp)
+                        if start_date <= timestamp_obj <= end_date:
+                            rainfall_values.append(data_point.get('rainfall_value', ''))
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            rainfall_timestamps.append(formatted_timestamp)
 
-            context = {
-                "channel_id": channel_id,
-                "rainfall_values": rainfall_values,
-                "timestamps": rainfall_timestamps,
-                "API": API,
-            }
-            return JsonResponse(context)
+            return JsonResponse({"channel_id": channel_id, "rainfall_values": rainfall_values, "timestamps": rainfall_timestamps})
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
-    else:
-        print("Error connecting to MongoDB.")
 
 def getHumidityTemperatureDataAll(request, channel_id):
     _id = ObjectId(channel_id)
@@ -1247,10 +1303,12 @@ def manage_sensor(request, channel_id):
             # Return HTML for website, JSON for mobile API calls
             if 'text/html' in request.headers.get('Accept', ''):
                 return render(request, 'conf_sensor.html', {
-                "channel_id": channel_id,
-                "sensor": sensor_list,          # was "sensors"
-                "API_KEY_VALUE": sensor_api,
-            })
+                    "channel_id": channel_id,
+                    "sensor": sensor_list,
+                    "API_KEY_VALUE": sensor_api,
+                    "message": request.GET.get('message', ''),
+                    "error": request.GET.get('error', ''),
+                })
             return JsonResponse({
                 "channel_id": channel_id,
                 "sensors": sensor_list,
@@ -1328,188 +1386,124 @@ def delete_sensor(request, channel_id, sensor_type):
     else:
         return JsonResponse({"error": "Database connection error"}, status=500)
 
-# EDIT SENSOR - DONE (changed)
+# EDIT SENSOR
 @csrf_exempt
 def edit_sensor(request, sensor_type, sensor_id, channel_id):
-    # NEW
     if request.method == 'POST':
-        print(sensor_type)
-        # Handle both JSON (mobile) and form data (website)
         if request.content_type == 'application/json':
             body = json.loads(request.body)
-            sensor_name = body.get('sensorName')
+            sensor_name = body.get('sensorName', '').strip()
             sensor_type = body.get('sensorType')
             API_KEY = body.get('ApiKey')
+            is_api = True
         else:
-            sensor_name = request.POST.get('sensorName')
+            sensor_name = request.POST.get('sensorName', '').strip()
             sensor_type = request.POST.get('sensorType')
             API_KEY = request.POST.get('ApiKey')
+            is_api = False
 
-        if sensor_type == "DHT11":
-            db, collection = connect_to_mongodb('sensor', 'DHT11')
-            if db is not None and collection is not None:
-                # Convert channel_id to ObjectId
-                _id = ObjectId(sensor_id)
-                result = collection.update_one(
-                    {"_id": _id},
-                    {"$set": {
-                        "sensor_name": sensor_name,
-                    }}
-                )
-                if result.modified_count > 0:
-                    # Channel updated successfully
-                    return redirect('manage_sensor', channel_id=channel_id)
-                else:
-                    return redirect('view_channel_sensor', channel_id=channel_id)
+        def _error(msg):
+            if is_api:
+                return JsonResponse({'error': msg}, status=400)
+            return render(request, 'edit_sensor.html', {
+                'channel_id': channel_id, 'sensor_name': sensor_name,
+                'sensor_type': sensor_type, 'API_KEY': API_KEY, 'error': msg,
+            })
 
-        elif sensor_type == "ph_sensor":
-            db, collection = connect_to_mongodb('sensor', 'PHSensor')
-            if db is not None and collection is not None:
-                # Convert channel_id to ObjectId
-                _id = ObjectId(sensor_id)
-                result = collection.update_one(
-                    {"_id": _id},
-                    {"$set": {
-                        "sensor_name": sensor_name,
-                    }}
-                )
-                if result.modified_count > 0:
-                    # Channel updated successfully
-                    return redirect('manage_sensor', channel_id=channel_id)
-                else:
-                    return redirect('view_channel_sensor', channel_id=channel_id)
-        elif sensor_type == "NPK":
-            db, collection = connect_to_mongodb('sensor', 'NPK')
-            if db is not None and collection is not None:
-                # Convert channel_id to ObjectId
-                _id = ObjectId(sensor_id)
-                result = collection.update_one(
-                    {"_id": _id},
-                    {"$set": {
-                        "sensor_name": sensor_name,
-                    }}
-                )
-                if result.modified_count > 0:
-                    # Channel updated successfully
-                    return redirect('manage_sensor', channel_id=channel_id)
-                else:
-                    return redirect('view_channel_sensor', channel_id=channel_id)
-        elif sensor_type == "rainfall":
-            db, collection = connect_to_mongodb('sensor', 'rainfall')
-            if db is not None and collection is not None:
-                # Convert channel_id to ObjectId
-                _id = ObjectId(sensor_id)
-                result = collection.update_one(
-                    {"_id": _id},
-                    {"$set": {
-                        "sensor_name": sensor_name,
-                    }}
-                )
-                if result.modified_count > 0:
-                    # Channel updated successfully
-                    return redirect('manage_sensor', channel_id=channel_id)
-                else:
-                    return redirect('view_channel_sensor', channel_id=channel_id)
+        if not sensor_name:
+            return _error('Sensor name cannot be empty.')
+
+        all_sensor_collections = {
+            'DHT11': ('sensor', 'DHT11'),
+            'NPK': ('sensor', 'NPK'),
+            'ph_sensor': ('sensor', 'PHSensor'),
+            'rainfall': ('sensor', 'rainfall'),
+        }
+
+        if sensor_type not in all_sensor_collections:
+            return _error('Invalid sensor type.')
+
+        # Duplicate name check across ALL sensor type collections for same API_KEY
+        for s_type, (s_db, s_col) in all_sensor_collections.items():
+            _, check_collection = connect_to_mongodb(s_db, s_col)
+            if check_collection is None:
+                continue
+            query = {'API_KEY': API_KEY, 'sensor_name': sensor_name}
+            if s_type == sensor_type:
+                query['_id'] = {'$ne': ObjectId(sensor_id)}
+            existing = check_collection.find_one(query)
+            if existing:
+                return _error('Sensor name already exists. Please choose a different name.')
+
+        db_name, col_name = all_sensor_collections[sensor_type]
+        db, collection = connect_to_mongodb(db_name, col_name)
+        if db is None or collection is None:
+            return _error('Database connection error. Please try again.')
+
+        collection.update_one(
+            {'_id': ObjectId(sensor_id)},
+            {'$set': {'sensor_name': sensor_name}}
+        )
+
+        if is_api:
+            return JsonResponse({'success': True, 'message': 'Sensor name updated successfully.'})
+        return redirect(f'/mychannel/{channel_id}/manage_sensor?message=Sensor name updated successfully.')
 
     else:
-        # Fetch channel details from MongoDB to pre-fill the form
-        if sensor_type == "DHT11":
-            db, collection = connect_to_mongodb('sensor', 'DHT11')
-            _id = ObjectId(sensor_id)
-            sensor = collection.find_one({"_id": _id})
-            if sensor:
-                sensor_name = sensor.get("sensor_name", "")
-                API_KEY = sensor.get("API_KEY", '')
-                context = {
-                    "channel_id": channel_id,
-                    "sensor_name": sensor_name,
-                    "sensor_type": sensor_type,
-                    "API_KEY": API_KEY,
-                }
-                # Render the edit form with channel data
-                return render(request, 'edit_sensor.html', context)
-            else:
-                # Handle if channel not found in MongoDB
-                return JsonResponse({"success": False, "error": "Channel not found"})
-        elif sensor_type == "ph_sensor":
-            db, collection = connect_to_mongodb('sensor', 'PHSensor')
-            _id = ObjectId(sensor_id)
-            sensor = collection.find_one({"_id": _id})
-            if sensor:
-                sensor_name = sensor.get("sensor_name", "")
-                API_KEY = sensor.get("API_KEY", '')
-                context = {
-                    "channel_id": channel_id,
-                    "sensor_name": sensor_name,
-                    "sensor_type": sensor_type,
-                    "API_KEY": API_KEY,
-                }
-                return render(request, 'edit_sensor.html', context)
-            else:
-                return JsonResponse({"success": False, "error": "Channel not found"})
-        elif sensor_type == "NPK":
-            db, collection = connect_to_mongodb('sensor', 'NPK')
-            _id = ObjectId(sensor_id)
-            sensor = collection.find_one({"_id": _id})
-            if sensor:
-                sensor_name = sensor.get("sensor_name", "")
-                API_KEY = sensor.get("API_KEY", '')
-                context = {
-                    "channel_id": channel_id,
-                    "sensor_name": sensor_name,
-                    "sensor_type": sensor_type,
-                    "API_KEY": API_KEY,
-                }
-                return render(request, 'edit_sensor.html', context)
-            else:
-                return JsonResponse({"success": False, "error": "Sensor not found"})
+        all_sensor_collections = {
+            'DHT11': ('sensor', 'DHT11'),
+            'NPK': ('sensor', 'NPK'),
+            'ph_sensor': ('sensor', 'PHSensor'),
+            'rainfall': ('sensor', 'rainfall'),
+        }
+        if sensor_type not in all_sensor_collections:
+            return redirect('view_channel_sensor', channel_id=channel_id)
 
-        elif sensor_type == "rainfall":
-            db, collection = connect_to_mongodb('sensor', 'rainfall')
-            _id = ObjectId(sensor_id)
-            sensor = collection.find_one({"_id": _id})
-            if sensor:
-                sensor_name = sensor.get("sensor_name", "")
-                API_KEY = sensor.get("API_KEY", '')
-                context = {
-                    "channel_id": channel_id,
-                    "sensor_name": sensor_name,
-                    "sensor_type": sensor_type,
-                    "API_KEY": API_KEY,
-                }
-                return render(request, 'edit_sensor.html', context)
-            else:
-                return JsonResponse({"success": False, "error": "Sensor not found"})
+        db_name, col_name = all_sensor_collections[sensor_type]
+        db, collection = connect_to_mongodb(db_name, col_name)
+        if db is None or collection is None:
+            return JsonResponse({'error': 'Database connection error.'}, status=500)
 
-    # Default response if request method is not 'POST'
-    return JsonResponse({"success": False, "error": "Invalid request method"})
+        sensor = collection.find_one({'_id': ObjectId(sensor_id)})
+        if not sensor:
+            return JsonResponse({'success': False, 'error': 'Sensor not found.'})
+
+        context = {
+            'channel_id': channel_id,
+            'sensor_name': sensor.get('sensor_name', ''),
+            'sensor_type': sensor_type,
+            'API_KEY': sensor.get('API_KEY', ''),
+        }
+        return render(request, 'edit_sensor.html', context)
 
 # TO CHANGE CHANNEL PERMISSION TO FORBID API - DONE
 @csrf_exempt
 def forbid_API(request, channel_id):
     if request.method == 'POST':
         db, collection = connect_to_mongodb('Channel', 'dashboard')
-        _id = ObjectId(channel_id)
-        filter_criteria = {'_id': _id}
-        update_result = collection.update_one(filter_criteria, {'$set': {'allow_API': 'not permitted'}})
-        if update_result.modified_count > 0:
+        channel = collection.find_one({'_id': ObjectId(channel_id)})
+        if not channel:
+            return JsonResponse({'error': 'Channel not found'}, status=404)
+        api_key = channel.get('API_KEY', '')
+        update_result = collection.update_many({'API_KEY': api_key}, {'$set': {'allow_API': 'not permitted'}})
+        if update_result.matched_count > 0:
             return JsonResponse({'message': 'API access forbidden successfully'}, status=200)
         else:
-            return JsonResponse({'error': 'Failed to update API access'}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request method'}, status=405)
+            return JsonResponse({'error': 'Channel not found'}, status=404)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 # TO CHANGE CHANNEL PERMISSION TO ALLOW API - DONE
 @csrf_exempt
 def permit_API(request, channel_id):
     if request.method == 'POST':
         db, collection = connect_to_mongodb('Channel', 'dashboard')
-        _id = ObjectId(channel_id)
-        filter_criteria = {'_id': _id}
-        update_result = collection.update_one(filter_criteria, {'$set': {'allow_API': 'permit'}})
-        if update_result.modified_count > 0:
+        channel = collection.find_one({'_id': ObjectId(channel_id)})
+        if not channel:
+            return JsonResponse({'error': 'Channel not found'}, status=404)
+        api_key = channel.get('API_KEY', '')
+        update_result = collection.update_many({'API_KEY': api_key}, {'$set': {'allow_API': 'permit'}})
+        if update_result.matched_count > 0:
             return JsonResponse({'message': 'API access permitted successfully'}, status=200)
         else:
-            return JsonResponse({'error': 'Failed to update API access'}, status=500)
-    else:
-        return JsonResponse({'error': 'Invalid request method'}, status=405)
+            return JsonResponse({'error': 'Channel not found'}, status=404)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

@@ -51,6 +51,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Map<String, dynamic>> cropRecommendations = [];
 
   bool isLoading = true;
+  
+  bool get _hasAnyData =>
+    phData.isNotEmpty ||
+    rainfallData.isNotEmpty ||
+    humidityData.isNotEmpty ||
+    tempData.isNotEmpty ||
+    nitrogenData.isNotEmpty ||
+    phosphorousData.isNotEmpty ||
+    potassiumData.isNotEmpty;
 
   Map<String, String> selectedChartTypes = {
     "pH Level Chart": "Spline Chart",
@@ -79,6 +88,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> fetchSensorData() async {
+    // Reset all date filters
+    setState(() {
+      _filtPh = null; _filtPhTs = null;
+      _filtRain = null; _filtRainTs = null;
+      _filtHumid = null; _filtTemp = null; _filtHumidTempTs = null;
+      _filtN = null; _filtP = null; _filtK = null; _filtNpkTs = null;
+      _filterStartDates = {};
+      _filterEndDates = {};
+    });
+    // ... rest of existing fetchSensorData code unchanged
     try {
       final response = await http.get(
         Uri.parse('http://10.0.2.2:8000/mychannel/$channelId/get_dashboard_data/'),
@@ -289,20 +308,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 16),
 
                   // ── Charts ───────────────────────────────────────
-                  _buildChartSection("pH Level Chart",    _generateSpots(_filtPh ?? phData),           _filtPhTs ?? phTimestamps,               'ph'),
-                  const SizedBox(height: 20),
-                  _buildChartSection("Rainfall Chart",    _generateSpots(_filtRain ?? rainfallData),   _filtRainTs ?? rainfallTimestamps,        'rainfall'),
-                  const SizedBox(height: 20),
-                  _buildChartSection("Humidity Chart",    _generateSpots(_filtHumid ?? humidityData),  _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
-                  const SizedBox(height: 20),
-                  _buildChartSection("Temperature Chart", _generateSpots(_filtTemp ?? tempData),       _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
-                  const SizedBox(height: 20),
-                  _buildChartSection("Nitrogen Chart",    _generateSpots(_filtN ?? nitrogenData),      _filtNpkTs ?? npkTimestamps,              'npk'),
-                  const SizedBox(height: 20),
-                  _buildChartSection("Phosphorous Chart", _generateSpots(_filtP ?? phosphorousData),   _filtNpkTs ?? npkTimestamps,              'npk'),
-                  const SizedBox(height: 20),
-                  _buildChartSection("Potassium Chart",   _generateSpots(_filtK ?? potassiumData),     _filtNpkTs ?? npkTimestamps,              'npk'),
-                  const SizedBox(height: 20),
+                  if (_hasAnyData) ...[
+                    _buildChartSection("pH Level Chart",    _generateSpots(_filtPh ?? phData),           _filtPhTs ?? phTimestamps,               'ph'),
+                    const SizedBox(height: 20),
+                    _buildChartSection("Rainfall Chart",    _generateSpots(_filtRain ?? rainfallData),   _filtRainTs ?? rainfallTimestamps,        'rainfall'),
+                    const SizedBox(height: 20),
+                    _buildChartSection("Humidity Chart",    _generateSpots(_filtHumid ?? humidityData),  _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
+                    const SizedBox(height: 20),
+                    _buildChartSection("Temperature Chart", _generateSpots(_filtTemp ?? tempData),       _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
+                    const SizedBox(height: 20),
+                    _buildChartSection("Nitrogen Chart",    _generateSpots(_filtN ?? nitrogenData),      _filtNpkTs ?? npkTimestamps,              'npk'),
+                    const SizedBox(height: 20),
+                    _buildChartSection("Phosphorous Chart", _generateSpots(_filtP ?? phosphorousData),   _filtNpkTs ?? npkTimestamps,              'npk'),
+                    const SizedBox(height: 20),
+                    _buildChartSection("Potassium Chart",   _generateSpots(_filtK ?? potassiumData),     _filtNpkTs ?? npkTimestamps,              'npk'),
+                    const SizedBox(height: 20),
+                  ] else ...[
+                    const SizedBox(height: 40),
+                    Center(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.sensors_off, size: 48, color: Colors.grey),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Add a new sensor to view a chart!',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddSensorScreen(channelId: channelId),
+                              ),
+                            ),
+                            child: const Text('Connect Sensor'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
 
                   // ── Crop Recommendations ─────────────────────────
                   Card(
@@ -342,50 +388,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final end = _filterEndDates[filterGroup];
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null) setState(() => _filterStartDates[filterGroup] = picked);
-              },
-              child: Text(
-                start != null ? DateFormat('dd/MM/yyyy').format(start) : 'From: dd/mm/yyyy',
-                style: const TextStyle(fontSize: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) setState(() => _filterStartDates[filterGroup] = picked);
+                  },
+                  child: Text(
+                    start != null ? DateFormat('dd/MM/yyyy').format(start) : 'From: dd/mm/yyyy',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) setState(() => _filterEndDates[filterGroup] = picked);
+                  },
+                  child: Text(
+                    end != null ? DateFormat('dd/MM/yyyy').format(end) : 'To: dd/mm/yyyy',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              ElevatedButton(
+                onPressed: () {
+                  if (start == null || end == null) return;
+                  if (start.isAfter(end)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Start date cannot be later than end date.')),
+                    );
+                    return;
+                  }
+                  _applyDateFilter(filterGroup, start, end);
+                },
+                child: const Text('Apply'),
+              ),
+            ],
+          ),
+          if (start != null || end != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _filterStartDates[filterGroup] = null;
+                    _filterEndDates[filterGroup] = null;
+                    _clearFilterForGroup(filterGroup);
+                  });
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Clear', style: TextStyle(fontSize: 12)),
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null) setState(() => _filterEndDates[filterGroup] = picked);
-              },
-              child: Text(
-                end != null ? DateFormat('dd/MM/yyyy').format(end) : 'To: dd/mm/yyyy',
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          ElevatedButton(
-            onPressed: start != null && end != null
-                ? () => _applyDateFilter(filterGroup, start, end)
-                : null,
-            child: const Text('Apply'),
-          ),
         ],
       ),
     );
@@ -447,12 +519,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         sideTitles: SideTitles(
                           showTitles: true,
                           getTitlesWidget: (value, meta) {
-                            int index = value.toInt();
-                            if (index >= 0 && index < timestamps.length) {
-                              return Text(timestamps[index],
-                                  style: const TextStyle(fontSize: 10));
-                            }
-                            return const Text('');
+                              int index = value.toInt();
+                              if (index >= 0 && index < timestamps.length) {
+                                  if (index == 0 || timestamps[index] != timestamps[index - 1]) {
+                                      return RotatedBox(
+                                          quarterTurns: 1,
+                                          child: Text(timestamps[index],
+                                              style: const TextStyle(fontSize: 9)),
+                                      );
+                                  }
+                              }
+                              return const Text('');
                           },
                         ),
                       ),
@@ -461,30 +538,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 )
               : LineChart(
                   LineChartData(
-                    minX: minXValue,
-                    maxX: maxXValue,
-                    minY: minYValue,
-                    maxY: maxYValue,
-                    lineBarsData: [
-                      _getChartData(spots, selectedChartTypes[title].toString()),
-                    ],
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            int index = value.toInt();
-                            if (index >= 0 && index < timestamps.length) {
-                              return Text(timestamps[index],
-                                  style: const TextStyle(fontSize: 10));
-                            }
-                            return const Text('');
+                      minX: minXValue,
+                      maxX: maxXValue,
+                      minY: minYValue,
+                      maxY: maxYValue,
+                      lineTouchData: LineTouchData(
+                        enabled: true,
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (spot) => Colors.black87,
+                          getTooltipItems: (touchedSpots) {
+                            return touchedSpots.map((spot) {
+                              int index = spot.spotIndex;
+                              String dateLabel = (index >= 0 && index < timestamps.length)
+                                  ? timestamps[index]
+                                  : '';
+                              String valueLabel = title.replaceAll(' Chart', ' Value');
+                              return LineTooltipItem(
+                                '$dateLabel\n',
+                                const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12),
+                                children: [
+                                  const TextSpan(
+                                    text: '■ ',
+                                    style: TextStyle(color: Colors.tealAccent, fontSize: 12),
+                                  ),
+                                  TextSpan(
+                                    text: '$valueLabel: ${spot.y.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.normal,
+                                        fontSize: 11),
+                                  ),
+                                ],
+                              );
+                            }).toList();
                           },
+                        ),
+                      ),
+                      lineBarsData: [
+                        _getChartData(spots, selectedChartTypes[title].toString()),
+                      ],
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 70,
+                            getTitlesWidget: (value, meta) {
+                              int index = value.toInt();
+                              if (value == index.toDouble() &&
+                                  index >= 0 &&
+                                  index < timestamps.length) {
+                                return RotatedBox(
+                                  quarterTurns: 1,
+                                  child: Text(
+                                    timestamps[index],
+                                    style: const TextStyle(fontSize: 9),
+                                    softWrap: false,
+                                    overflow: TextOverflow.visible,
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
         ),
         const SizedBox(height: 10),
         TextButton.icon(
@@ -726,7 +848,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _toggleApi(bool value) async {
     final action = value ? 'permit_API' : 'forbid_API';
-    final url = 'http://10.0.2.2:8000/mychannel/$channelId/$action';
+    final url = 'http://10.0.2.2:8000/mychannel/$channelId/$action/';
     try {
       final response = await http.post(
         Uri.parse(url),
@@ -847,5 +969,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  void _clearFilterForGroup(String filterGroup) {
+    switch (filterGroup) {
+      case 'ph':
+        _filtPh = null; _filtPhTs = null;
+        break;
+      case 'rainfall':
+        _filtRain = null; _filtRainTs = null;
+        break;
+      case 'humidTemp':
+        _filtHumid = null; _filtTemp = null; _filtHumidTempTs = null;
+        break;
+      case 'npk':
+        _filtN = null; _filtP = null; _filtK = null; _filtNpkTs = null;
+        break;
+    }
   }
 }
