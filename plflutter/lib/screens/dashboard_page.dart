@@ -37,8 +37,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Filtered data per sensor group (null = show all)
   List<double>? _filtPh; List<String>? _filtPhTs;
   List<double>? _filtRain; List<String>? _filtRainTs;
-  List<double>? _filtHumid, _filtTemp; List<String>? _filtHumidTempTs;
-  List<double>? _filtN, _filtP, _filtK; List<String>? _filtNpkTs;
+  List<double>? _filtHumid; List<String>? _filtHumidTs;
+  List<double>? _filtTemp; List<String>? _filtTempTs;
+  List<double>? _filtN; List<String>? _filtNTs;
+  List<double>? _filtP; List<String>? _filtPTs;
+  List<double>? _filtK; List<String>? _filtKTs;
 
   // Selected dates per chart group
   Map<String, DateTime?> _filterStartDates = {};
@@ -92,12 +95,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _filtPh = null; _filtPhTs = null;
       _filtRain = null; _filtRainTs = null;
-      _filtHumid = null; _filtTemp = null; _filtHumidTempTs = null;
-      _filtN = null; _filtP = null; _filtK = null; _filtNpkTs = null;
+      _filtHumid = null; _filtHumidTs = null;
+      _filtTemp = null; _filtTempTs = null;
+      _filtN = null; _filtNTs = null;
+      _filtP = null; _filtPTs = null;
+      _filtK = null; _filtKTs = null;
       _filterStartDates = {};
       _filterEndDates = {};
     });
-    // ... rest of existing fetchSensorData code unchanged
     try {
       final response = await http.get(
         Uri.parse('http://10.0.2.2:8000/mychannel/$channelId/get_dashboard_data/'),
@@ -178,26 +183,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
             });
           }
           break;
-        case 'humidTemp':
+        case 'humidity':
           final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/humidity_temperature/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
               _filtHumid = List<double>.from((d['humid_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
-              _filtTemp = List<double>.from((d['temp_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
-              _filtHumidTempTs = List<String>.from(d['timestamps_humid_temp'] ?? []);
+              _filtHumidTs = List<String>.from(d['timestamps_humid_temp'] ?? []);
             });
           }
           break;
-        case 'npk':
+        case 'temperature':
+          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/humidity_temperature/$channelId/$s/$e/'));
+          if (r.statusCode == 200) {
+            final d = jsonDecode(r.body);
+            setState(() {
+              _filtTemp = List<double>.from((d['temp_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtTempTs = List<String>.from(d['timestamps_humid_temp'] ?? []);
+            });
+          }
+          break;
+        case 'nitrogen':
           final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/NPK/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
               _filtN = List<double>.from((d['nitrogen_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtNTs = List<String>.from(d['timestamps_NPK'] ?? []);
+            });
+          }
+          break;
+        case 'phosphorous':
+          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/NPK/$channelId/$s/$e/'));
+          if (r.statusCode == 200) {
+            final d = jsonDecode(r.body);
+            setState(() {
               _filtP = List<double>.from((d['phosphorous_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
+              _filtPTs = List<String>.from(d['timestamps_NPK'] ?? []);
+            });
+          }
+          break;
+        case 'potassium':
+          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/NPK/$channelId/$s/$e/'));
+          if (r.statusCode == 200) {
+            final d = jsonDecode(r.body);
+            setState(() {
               _filtK = List<double>.from((d['potassium_values'] as List?)?.map((v) => double.tryParse(v.toString()) ?? 0.0) ?? []);
-              _filtNpkTs = List<String>.from(d['timestamps_NPK'] ?? []);
+              _filtKTs = List<String>.from(d['timestamps_NPK'] ?? []);
             });
           }
           break;
@@ -313,17 +345,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 20),
                     _buildChartSection("Rainfall Chart",    _generateSpots(_filtRain ?? rainfallData),   _filtRainTs ?? rainfallTimestamps,        'rainfall'),
                     const SizedBox(height: 20),
-                    _buildChartSection("Humidity Chart",    _generateSpots(_filtHumid ?? humidityData),  _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
+                    _buildChartSection("Humidity Chart",    _generateSpots(_filtHumid ?? humidityData),  _filtHumidTs ?? humidTempTimestamps,  'humidity'),
+                    _buildChartSection("Temperature Chart", _generateSpots(_filtTemp ?? tempData),       _filtTempTs ?? humidTempTimestamps,   'temperature'),
+                    _buildChartSection("Nitrogen Chart",    _generateSpots(_filtN ?? nitrogenData),      _filtNTs ?? npkTimestamps,            'nitrogen'),
+                    _buildChartSection("Phosphorous Chart", _generateSpots(_filtP ?? phosphorousData),   _filtPTs ?? npkTimestamps,            'phosphorous'),
+                    _buildChartSection("Potassium Chart",   _generateSpots(_filtK ?? potassiumData),     _filtKTs ?? npkTimestamps,            'potassium'),
                     const SizedBox(height: 20),
-                    _buildChartSection("Temperature Chart", _generateSpots(_filtTemp ?? tempData),       _filtHumidTempTs ?? humidTempTimestamps,  'humidTemp'),
-                    const SizedBox(height: 20),
-                    _buildChartSection("Nitrogen Chart",    _generateSpots(_filtN ?? nitrogenData),      _filtNpkTs ?? npkTimestamps,              'npk'),
-                    const SizedBox(height: 20),
-                    _buildChartSection("Phosphorous Chart", _generateSpots(_filtP ?? phosphorousData),   _filtNpkTs ?? npkTimestamps,              'npk'),
-                    const SizedBox(height: 20),
-                    _buildChartSection("Potassium Chart",   _generateSpots(_filtK ?? potassiumData),     _filtNpkTs ?? npkTimestamps,              'npk'),
-                    const SizedBox(height: 20),
-                  ] else ...[
                     const SizedBox(height: 40),
                     Center(
                       child: Column(
@@ -388,76 +415,94 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final end = _filterEndDates[filterGroup];
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setState(() => _filterStartDates[filterGroup] = picked);
-                  },
-                  child: Text(
-                    start != null ? DateFormat('dd/MM/yyyy').format(start) : 'From: dd/mm/yyyy',
-                    style: const TextStyle(fontSize: 12),
+          Expanded(
+            child: OutlinedButton(
+                     style: OutlinedButton.styleFrom(
+                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                     ),
+                     onPressed: () async {
+                       final picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) setState(() => _filterStartDates[filterGroup] = picked);
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('From:', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  Text(
+                    start != null ? DateFormat('dd/MM/yyyy').format(start) : 'dd/mm/yyyy',
+                    style: const TextStyle(fontSize: 11),
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
                   ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setState(() => _filterEndDates[filterGroup] = picked);
-                  },
-                  child: Text(
-                    end != null ? DateFormat('dd/MM/yyyy').format(end) : 'To: dd/mm/yyyy',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              ElevatedButton(
-                onPressed: () {
-                  if (start == null || end == null) return;
-                  if (start.isAfter(end)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Start date cannot be later than end date.')),
-                    );
-                    return;
-                  }
-                  _applyDateFilter(filterGroup, start, end);
-                },
-                child: const Text('Apply'),
-              ),
-            ],
-          ),
-          if (start != null || end != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () {
-                  setState(() {
-                    _filterStartDates[filterGroup] = null;
-                    _filterEndDates[filterGroup] = null;
-                    _clearFilterForGroup(filterGroup);
-                  });
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Clear', style: TextStyle(fontSize: 12)),
+                ],
               ),
             ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: OutlinedButton(
+                     style: OutlinedButton.styleFrom(
+                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                     ),
+                     onPressed: () async {
+                       final picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) setState(() => _filterEndDates[filterGroup] = picked);
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('To:', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  Text(
+                    end != null ? DateFormat('dd/MM/yyyy').format(end) : 'dd/mm/yyyy',
+                    style: const TextStyle(fontSize: 11),
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          ElevatedButton(
+            onPressed: () {
+              if (start == null || end == null) return;
+              if (start.isAfter(end)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Start date cannot be later than end date.')),
+                );
+                return;
+              }
+              _applyDateFilter(filterGroup, start, end);
+            },
+            child: const Text('Apply', style: TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 4),
+          OutlinedButton(
+            onPressed: () {
+              setState(() {
+                _filterStartDates[filterGroup] = null;
+                _filterEndDates[filterGroup] = null;
+                _clearFilterForGroup(filterGroup);
+              });
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
+            ),
+            child: const Text('Clear', style: TextStyle(fontSize: 12)),
+          ),
         ],
       ),
     );
@@ -669,6 +714,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     String? generatedEmbedCode;
     bool embedGenerated = false;
+    String? shareError;  
     String shareMode = 'fixed';
 
     showDialog(
@@ -768,16 +814,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         },
                       ),
                     ],
-                    const SizedBox(height: 16),
+                                        const SizedBox(height: 16),
+                    if (shareError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(shareError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      ),
                     ElevatedButton(
                       onPressed: () {
                         setDialogState(() {
+                          shareError = null;
+                          if (chartNameController.text.trim().isEmpty) {
+                            shareError = 'Chart name cannot be empty.';
+                            return;
+                          }
                           if (shareMode == 'live') {
                             generatedEmbedCode =
                                 '$_baseUrl/mychannel/embed/channel/$channelId/$chartDataType/live/';
                             embedGenerated = true;
                           } else {
-                            if (selectedStartDate == null || selectedEndDate == null) return;
+                            if (selectedStartDate == null) {
+                              shareError = 'Start date cannot be empty.';
+                              return;
+                            }
+                            if (selectedEndDate == null) {
+                              shareError = 'End date cannot be empty.';
+                              return;
+                            }
+                            if (selectedStartDate!.isAfter(selectedEndDate!)) {
+                              shareError = 'Start date cannot be later than end date.';
+                              return;
+                            }
                             final start = DateFormat('yyyy-MM-dd').format(selectedStartDate!);
                             final end = DateFormat('yyyy-MM-dd').format(selectedEndDate!);
                             generatedEmbedCode =
@@ -973,18 +1040,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _clearFilterForGroup(String filterGroup) {
     switch (filterGroup) {
-      case 'ph':
-        _filtPh = null; _filtPhTs = null;
-        break;
-      case 'rainfall':
-        _filtRain = null; _filtRainTs = null;
-        break;
-      case 'humidTemp':
-        _filtHumid = null; _filtTemp = null; _filtHumidTempTs = null;
-        break;
-      case 'npk':
-        _filtN = null; _filtP = null; _filtK = null; _filtNpkTs = null;
-        break;
+      case 'ph':          _filtPh = null; _filtPhTs = null; break;
+      case 'rainfall':    _filtRain = null; _filtRainTs = null; break;
+      case 'humidity':    _filtHumid = null; _filtHumidTs = null; break;
+      case 'temperature': _filtTemp = null; _filtTempTs = null; break;
+      case 'nitrogen':    _filtN = null; _filtNTs = null; break;
+      case 'phosphorous': _filtP = null; _filtPTs = null; break;
+      case 'potassium':   _filtK = null; _filtKTs = null; break;
     }
   }
 }
