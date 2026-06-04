@@ -28,6 +28,14 @@
         </select>
     </div>
     <div class="chart-container">
+        <div class="d-flex align-items-center gap-2 mt-2 mb-2 flex-wrap" id="datePickerRow">
+        <small>From:</small>
+        <input type="date" id="startDateInput" class="form-control form-control-sm" style="width:auto;">
+        <small>To:</small>
+        <input type="date" id="endDateInput" class="form-control form-control-sm" style="width:auto;">
+        <button id="applyDateBtn" class="btn btn-sm btn-outline-secondary">Apply</button>
+        <button id="clearDateBtn" class="btn btn-sm btn-outline-danger">Clear</button>
+    </div>
         <div id="canvas" class="d-flex align-content-start flex-wrap justify-content-between">
             <div id="chart-spinner-container" class="text-center" style="width: 400px; height: 400px; display: none;">
                 <div class="spinner-border" role="status">
@@ -162,6 +170,40 @@
                 }
             };
         }
+
+        // Date filter — only shown for live charts; for fixed-timeline charts dates are already set
+        const isLiveChart = "{{ is_live }}" === "True";
+        const channelIdForFilter = "{{ channel_id }}";
+
+        document.getElementById('applyDateBtn').addEventListener('click', function() {
+            const s = document.getElementById('startDateInput').value;
+            const e = document.getElementById('endDateInput').value;
+            if (!s || !e) return;
+            if (new Date(s) > new Date(e)) { alert('Start date cannot be later than end date.'); return; }
+            fetch(`https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelIdForFilter}/${s}/${e}/`, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+                .then(r => r.json())
+                .then(data => {
+                    phData = data.ph_values || [];
+                    timestamps = data.timestamps || [];
+                    phChart = createChart('phChart', phData, timestamps, 'PH Value', document.getElementById('chartTypeSelect').value);
+                });
+        });
+
+        document.getElementById('clearDateBtn').addEventListener('click', function() {
+            document.getElementById('startDateInput').value = '';
+            document.getElementById('endDateInput').value = '';
+            // Reload original data
+            const url = isLiveChart
+                ? `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelIdForFilter}/all/`
+                : `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelIdForFilter}/${"{{ start_date }}"}/${"{{ end_date }}"}/`;
+            fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+                .then(r => r.json())
+                .then(data => {
+                    phData = data.ph_values || [];
+                    timestamps = data.timestamps || [];
+                    phChart = createChart('phChart', phData, timestamps, 'PH Value', document.getElementById('chartTypeSelect').value);
+                });
+        });
 
     </script>
 </body>

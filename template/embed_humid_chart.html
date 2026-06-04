@@ -1,4 +1,4 @@
-{% load compress %} 
+{% load compress %}
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -27,17 +27,15 @@
             <option value="bar">Bar Chart</option>
         </select>
     </div>
-    {% if is_live %}
-    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-        <label>From:</label>
-        <input type="date" id="liveDateStart" class="form-control form-control-sm" style="width:auto;">
-        <label>To:</label>
-        <input type="date" id="liveDateEnd" class="form-control form-control-sm" style="width:auto;">
-        <button id="applyDateBtn" class="btn btn-sm btn-primary">Apply</button>
-        <small id="lastUpdated" class="text-muted ms-2"></small>
-    </div>
-    {% endif %}
     <div class="chart-container">
+        <div class="d-flex align-items-center gap-2 mt-2 mb-2 flex-wrap" id="datePickerRow">
+            <small>From:</small>
+            <input type="date" id="startDateInput" class="form-control form-control-sm" style="width:auto;">
+            <small>To:</small>
+            <input type="date" id="endDateInput" class="form-control form-control-sm" style="width:auto;">
+            <button id="applyDateBtn" class="btn btn-sm btn-outline-secondary">Apply</button>
+            <button id="clearDateBtn" class="btn btn-sm btn-outline-danger">Clear</button>
+        </div>
         <div id="canvas" class="d-flex align-content-start flex-wrap justify-content-between">
             <div id="chart-spinner-container" class="text-center" style="width: 400px; height: 400px; display: none;">
                 <div class="spinner-border" role="status">
@@ -47,13 +45,7 @@
             </div>
         </div>
         <div class="d-grid gap-2">
-            <!-- <button id="real-time" class="btn btn-primary mt-3" type="button">Real Time</button> -->
             <button id="download" class="btn btn-primary mt-3">Download Chart as Image</button>
-            <!-- <div id="fb-root"></div>
-            <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v20.0" nonce="6wGNTbvk"></script>
-            <div class="fb-share-button" data-href="https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/" data-layout="" data-size="">
-                <a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fshiroooo.pythonanywhere.com%2Fmychannel%2F{{ channel_id }}%2Fshared_dashboard%2F&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Share</a>
-            </div> -->
         </div>
     </div>
 
@@ -61,85 +53,102 @@
         let humidChart = null;
         let humidData = [];
         let timestamps_temp_humid = [];
-        
+
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}";
             const startDate = "{{ start_date }}";
             const endDate = "{{ end_date }}";
             const isLive = "{{ is_live }}" === "True";
-            let refreshInterval = null;
-        
-            function fetchData(start, end) {
-                let url;
-                if (start && end) {
-                    // user picked dates — filter by range
-                    url = `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${start}/${end}/`;
-                } else if (isLive) {
-                    // first load on live — show all data
-                    url = `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/all/`;
-                } else {
-                    // fixed timeline embed
-                    url = `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
-                }
-        
-                document.getElementById('chart-spinner-container').style.display = 'block';
-                document.getElementById('download').style.display = 'none';
-        
-                fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('download').style.display = 'block';
-                        document.getElementById('chart-spinner-container').style.display = 'none';
-                        humidData = data.humid_values || [];
-                        timestamps_temp_humid = data.timestamps_humid_temp || [];
-        
-                        if (!document.getElementById('humidChart')) {
-                            const humidCanvasContainer = document.createElement('div');
-                            humidCanvasContainer.className = 'canvas-container';
-                            const humidCanvas = document.createElement('canvas');
-                            humidCanvas.id = 'humidChart';
-                            humidCanvas.width = 450;
-                            humidCanvas.height = 400;
-                            humidCanvasContainer.appendChild(humidCanvas);
-                            document.getElementById('canvas').appendChild(humidCanvasContainer);
-                        }
-        
-                        humidChart = createChart('humidChart', humidData, timestamps_temp_humid, 'Humidity Value');
-        
-                        if (isLive) {
-                            document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching chart data:', error);
-                        document.getElementById('chart-spinner-container').style.display = 'none';
-                    });
-            }
-        
-            // load all data on first render
-            fetchData();
-        
-            if (isLive) {
-                refreshInterval = setInterval(() => fetchData(), 30000);
-        
-                document.getElementById('applyDateBtn').addEventListener('click', function () {
-                    const start = document.getElementById('liveDateStart').value;
-                    const end = document.getElementById('liveDateEnd').value;
-                    if (start && end) {
-                        clearInterval(refreshInterval);
-                        fetchData(start, end);
-                        refreshInterval = setInterval(() => fetchData(start, end), 30000);
+
+            document.getElementById('chart-spinner-container').style.display = 'block';
+            document.getElementById('download').style.display = 'none';
+
+            const url = isLive
+                ? `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/all/`
+                : `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
+
+            fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('download').style.display = 'block';
+                    document.getElementById('chart-spinner-container').style.display = 'none';
+                    humidData = data.humid_values || [];
+                    timestamps_temp_humid = data.timestamps_humid_temp || [];
+
+                    if (!document.getElementById('humidChart')) {
+                        const humidCanvasContainer = document.createElement('div');
+                        humidCanvasContainer.className = 'canvas-container';
+                        const humidCanvas = document.createElement('canvas');
+                        humidCanvas.id = 'humidChart';
+                        humidCanvas.width = 450;
+                        humidCanvas.height = 400;
+                        humidCanvasContainer.appendChild(humidCanvas);
+                        document.getElementById('canvas').appendChild(humidCanvasContainer);
                     }
+
+                    humidChart = createChart('humidChart', humidData, timestamps_temp_humid, 'Humidity Value');
+                })
+                .catch(error => {
+                    console.error('Error fetching chart data:', error);
+                    document.getElementById('chart-spinner-container').style.display = 'none';
                 });
-            }
-        
+
             document.getElementById('chartTypeSelect').addEventListener('change', function() {
                 if (humidChart) {
                     humidChart = createChart('humidChart', humidData, timestamps_temp_humid, 'Humidity Value', this.value);
                 }
             });
+
+            const wsApiKey = "{{ API }}";
+            if (wsApiKey && isLive) {
+                const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+                socket.onopen = function() {
+                    socket.send(JSON.stringify({ action: 'setAPI', api: wsApiKey }));
+                };
+                socket.onmessage = function(event) {
+                    const msg = JSON.parse(event.data);
+                    if (msg.privateMessage && msg.privateMessage.sensor_type === 'DHT11') {
+                        if (humidChart) {
+                            humidChart.data.labels.push(msg.privateMessage.timestamp);
+                            humidChart.data.datasets[0].data.push(parseFloat(msg.privateMessage.humidity_value));
+                            humidChart.update();
+                        }
+                    }
+                };
+            }
+
+            document.getElementById('applyDateBtn').addEventListener('click', function() {
+                const s = document.getElementById('startDateInput').value;
+                const e = document.getElementById('endDateInput').value;
+                if (!s || !e) { alert('Please select both start and end dates.'); return; }
+                if (new Date(s) > new Date(e)) { alert('Start date cannot be later than end date.'); return; }
+                fetch(`https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${s}/${e}/`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    humidData = data.humid_values || [];
+                    timestamps_temp_humid = data.timestamps_humid_temp || [];
+                    humidChart = createChart('humidChart', humidData, timestamps_temp_humid, 'Humidity Value', document.getElementById('chartTypeSelect').value);
+                });
+            });
+
+            document.getElementById('clearDateBtn').addEventListener('click', function() {
+                document.getElementById('startDateInput').value = '';
+                document.getElementById('endDateInput').value = '';
+                const clearUrl = isLive
+                    ? `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/all/`
+                    : `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
+                fetch(clearUrl, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+                .then(r => r.json())
+                .then(data => {
+                    humidData = data.humid_values || [];
+                    timestamps_temp_humid = data.timestamps_humid_temp || [];
+                    humidChart = createChart('humidChart', humidData, timestamps_temp_humid, 'Humidity Value', document.getElementById('chartTypeSelect').value);
+                });
+            });
         });
-        
+
         function createChart(canvasId, data, labels, label, type = 'line') {
             const chartType = type === 'spline' ? 'line' : type;
             const config = {
@@ -155,19 +164,10 @@
                     }]
                 },
                 options: {
-                    elements: {
-                        line: {
-                            tension: type === 'spline' ? 0.4 : 0.1
-                        }
-                    },
+                    elements: { line: { tension: type === 'spline' ? 0.4 : 0.1 } },
                     scales: {
                         y: { beginAtZero: false },
-                        x: {
-                            ticks: {
-                                maxRotation: 90,
-                                minRotation: 80
-                            }
-                        }
+                        x: { ticks: { maxRotation: 90, minRotation: 80 } }
                     },
                     responsive: false,
                     maintainAspectRatio: false
@@ -175,12 +175,10 @@
             };
             const canvas = document.getElementById(canvasId);
             const chartInstance = Chart.getChart(canvas);
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
+            if (chartInstance) { chartInstance.destroy(); }
             return new Chart(canvas, config);
         }
-        
+
         document.getElementById('download').addEventListener('click', function() {
             const canvas = document.getElementById('humidChart');
             canvas.toBlob(function(blob) {
@@ -190,25 +188,6 @@
                 link.click();
             }, 'image/jpeg');
         });
-     
-        const wsApiKey = "{{ API }}";
-        if (wsApiKey && isLive) {
-            const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
-            socket.onopen = function() {
-                socket.send(JSON.stringify({ action: 'setAPI', api: wsApiKey }));
-            };
-            socket.onmessage = function(event) {
-                const msg = JSON.parse(event.data);
-                if (msg.privateMessage && msg.privateMessage.sensor_type === 'DHT11') {
-                    if (humidChart) {
-                        humidChart.data.labels.push(msg.privateMessage.timestamp);
-                        humidChart.data.datasets[0].data.push(parseFloat(msg.privateMessage.humidity_value));
-                        humidChart.update();
-                    }
-                }
-            };
-        }
-
     </script>
 </body>
 </html>
