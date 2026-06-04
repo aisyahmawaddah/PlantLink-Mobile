@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ["main"]
 
-jobs:
+jobs:ame: Install dependencies
   test-django:
     runs-on: ubuntu-latest
     steps:
@@ -18,7 +18,9 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install django-cors-headers channels
 
       - name: Run Django tests
         env:
