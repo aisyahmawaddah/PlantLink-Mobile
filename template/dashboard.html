@@ -599,6 +599,12 @@
         }
         document.addEventListener("DOMContentLoaded", function(){
             const shareChannelToPlantfeed = document.getElementById('shareChannel');
+            if (localStorage.getItem('channelShared_{{ channel_id }}') === 'true') {
+               shareChannelToPlantfeed.disabled = true;
+               shareChannelToPlantfeed.innerText = 'Already Shared';
+               shareChannelToPlantfeed.classList.remove('btn-create');
+               shareChannelToPlantfeed.classList.add('btn-secondary');
+           }
             shareChannelToPlantfeed.addEventListener("click",function(){
                 let url="/mychannel/{{ channel_id }}/share";
                 fetch(url,{
@@ -610,6 +616,11 @@
                 .then(data => {
                     if (data.success) {
                         alert('Successfully shared channel to PlantFeed');
+                        shareChannelToPlantfeed.disabled = true;
+                        shareChannelToPlantfeed.innerText = 'Already Shared';
+                        shareChannelToPlantfeed.classList.remove('btn-create');
+                        shareChannelToPlantfeed.classList.add('btn-secondary');
+                        localStorage.setItem('channelShared_{{ channel_id }}', 'true');
                     } else {
                         alert('Failed to share channel to PlantFeed');
                     }
