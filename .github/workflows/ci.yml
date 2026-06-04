@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  build-and-test:
+  test-django:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,13 +18,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Run tests
-        run: |
-          python manage.py test
-        continue-on-error: false
+      - name: Run Django tests
+        run: python manage.py test
 
       - name: Notify Jira on failure
         if: failure()
@@ -35,8 +32,42 @@ jobs:
             -d '{
               "fields": {
                 "project": {"key": "${{ secrets.JIRA_PROJECT_KEY }}"},
-                "summary": "CI Failure: ${{ github.repository }} on ${{ github.ref_name }} [${{ github.sha }}]",
-                "description": "Pipeline failed.\n\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "summary": "CI Failure (Django): ${{ github.repository }} on ${{ github.ref_name }} [${{ github.sha }}]",
+                "description": "Django pipeline failed.\n\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "issuetype": {"name": "Bug"},
+                "priority": {"name": "High"}
+              }
+            }'
+
+  test-flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.x"
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: plflutter
+
+      - name: Run Flutter tests
+        run: flutter test
+        working-directory: plflutter
+
+      - name: Notify Jira on failure
+        if: failure()
+        run: |
+          curl -s -X POST "${{ secrets.JIRA_BASE_URL }}/rest/api/2/issue/" \
+            -u "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "fields": {
+                "project": {"key": "${{ secrets.JIRA_PROJECT_KEY }}"},
+                "summary": "CI Failure (Flutter): ${{ github.repository }} on ${{ github.ref_name }} [${{ github.sha }}]",
+                "description": "Flutter pipeline failed.\n\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
                 "issuetype": {"name": "Bug"},
                 "priority": {"name": "High"}
               }
@@ -44,7 +75,7 @@ jobs:
 
   build-and-push-docker:
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: [test-django, test-flutter]
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
