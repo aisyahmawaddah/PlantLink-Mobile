@@ -54,6 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Map<String, dynamic>> cropRecommendations = [];
 
   bool isLoading = true;
+  bool _channelAlreadyShared = false;
   
   bool get _hasAnyData =>
     phData.isNotEmpty ||
@@ -81,6 +82,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _loadPlantfeedUserId();
     fetchSensorData();
+    _checkIfAlreadyShared();
   }
 
   Future<void> _loadPlantfeedUserId() async {
@@ -156,6 +158,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() => isLoading = false);
       debugPrint('Error fetching data: $e');
     }
+  }
+
+  Future<void> _checkIfAlreadyShared() async {
+    final prefs = await SharedPreferences.getInstance();
+    final shared = prefs.getBool('channelShared_$channelId') ?? false;
+    if (shared) setState(() => _channelAlreadyShared = true);
   }
 
   Future<void> _applyDateFilter(String group, DateTime start, DateTime end) async {
@@ -239,6 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+
   List<FlSpot> _generateSpots(List<double> data) {
     return List.generate(data.length, (index) => FlSpot(index.toDouble(), data[index]));
   }
@@ -308,10 +317,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     runSpacing: 8,
                     children: [
                       ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _channelAlreadyShared ? Colors.grey : Colors.green,
+                        ),
                         icon: const Icon(Icons.share, color: Colors.white, size: 16),
-                        label: const Text('Share Channel', style: TextStyle(color: Colors.white)),
-                        onPressed: shareChannel,
+                        label: Text(
+                          _channelAlreadyShared ? 'Already Shared' : 'Share Channel',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        onPressed: _channelAlreadyShared ? null : shareChannel,
                       ),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -942,8 +956,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData["success"] != null) {
-          _showDialog("Channel Shared", responseData["success"]);
-        } else {
+           _showDialog("Channel Shared", responseData["success"]);
+           // ← ADD THESE TWO LINES
+           final prefs = await SharedPreferences.getInstance();
+           await prefs.setBool('channelShared_$channelId', true);
+           setState(() => _channelAlreadyShared = true);
+         } else {
           _showDialog("Error", "Failed to share the channel.");
         }
       } else {
