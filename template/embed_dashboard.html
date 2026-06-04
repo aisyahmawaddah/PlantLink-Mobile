@@ -34,10 +34,22 @@
     <div id="testing"></div>
     <div id="empty_sensor">This dashboard has no sensor connected!</div>
     
+        <!-- Crop Recommendation Table -->
+    <div class="container mt-4 px-0" id="cropSection" style="display:none;">
+        <h5>Crop Recommendations</h5>
+        <table class="table table-striped">
+            <thead><tr><th>Crop</th><th>Prediction Accuracy (%)</th></tr></thead>
+            <tbody id="crop-recommendations"></tbody>
+        </table>
+    </div>
+
     <script>
         // Define chart variables
         let phChart = null, humidChart = null, tempChart = null, rainfallChart = null, nitrogenChart = null, phosphorousChart = null, potassiumChart = null;
         
+        const originalChartData = {};
+        const BASE_URL = 'https://rathe-russell-proterandrous.ngrok-free.dev';
+
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}"; 
             let latest_ph = null;
@@ -103,7 +115,9 @@
                             phCanvasContainer.appendChild(phCanvas);
                             document.getElementById('canvas').appendChild(phCanvasContainer);
                             phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
+                            originalChartData['phChart'] = { data: phData, labels: timestamps, label: 'PH Value' };
                             addDropdown(phCanvasContainer, phChart);
+                            addDatePicker(phCanvasContainer, 'phChart');
                         }
 
                         if (rainfallData.length > 0) {
@@ -116,8 +130,10 @@
                             rainfallCanvasContainer.appendChild(rainfallCanvas);
                             document.getElementById('canvas').appendChild(rainfallCanvasContainer);
                             rainfallChart = createChart(rainfallCanvas.id, rainfallData, rainfall_timestamps, 'Rainfall Value');
-                            addDropdown(rainfallCanvasContainer, rainfallChart);
-                        }
+                            addDropdown(rainfallCanvasContainer, rainfallChart);          // ← must be here
+                            originalChartData['rainfallChart'] = { data: [...rainfallData], labels: [...rainfall_timestamps] };
+                            addDatePicker(rainfallCanvasContainer, 'rainfallChart');
+                       }
 
                         if (humidData.length > 0) {
                             const humidCanvasContainer = document.createElement('div');
@@ -129,7 +145,9 @@
                             humidCanvasContainer.appendChild(humidCanvas);
                             document.getElementById('canvas').appendChild(humidCanvasContainer);
                             humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
+                            originalChartData['humidChart'] = { data: humidData, labels: timestamps_temp_humid, label: 'Humidity Value' };
                             addDropdown(humidCanvasContainer, humidChart);
+                            addDatePicker(humidCanvasContainer, 'humidChart');
                         }
 
                         if (tempData.length > 0) {
@@ -142,7 +160,9 @@
                             tempCanvasContainer.appendChild(tempCanvas);
                             document.getElementById('canvas').appendChild(tempCanvasContainer);
                             tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
+                            originalChartData['tempChart'] = { data: tempData, labels: timestamps_temp_humid, label: 'Temperature Value' };
                             addDropdown(tempCanvasContainer, tempChart);
+                            addDatePicker(tempCanvasContainer, 'tempChart');
                         }
 
                         if (nitrogenData.length > 0) {
@@ -155,7 +175,9 @@
                             nitrogenCanvasContainer.appendChild(nitrogenCanvas);
                             document.getElementById('canvas').appendChild(nitrogenCanvasContainer);
                             nitrogenChart = createChart(nitrogenCanvas.id, nitrogenData, timestamps_NPK, 'Nitrogen Value');
+                            originalChartData['nitrogenChart'] = { data: nitrogenData, labels: timestamps_NPK, label: 'Nitrogen Value' };
                             addDropdown(nitrogenCanvasContainer, nitrogenChart);
+                            addDatePicker(nitrogenCanvasContainer, 'nitrogenChart');
                         }
 
                         if (phosphorousData.length > 0) {
@@ -168,7 +190,9 @@
                             phosphorousCanvasContainer.appendChild(phosphorousCanvas);
                             document.getElementById('canvas').appendChild(phosphorousCanvasContainer);
                             phosphorousChart = createChart(phosphorousCanvas.id, phosphorousData, timestamps_NPK, 'Phosphorous Value');
+                            originalChartData['phosphorousChart'] = { data: phosphorousData, labels: timestamps_NPK, label: 'Phosphorous Value' };
                             addDropdown(phosphorousCanvasContainer, phosphorousChart);
+                            addDatePicker(phosphorousCanvasContainer, 'phosphorousChart');
                         }
 
                         if (potassiumData.length > 0) {
@@ -181,7 +205,22 @@
                             potassiumCanvasContainer.appendChild(potassiumCanvas);
                             document.getElementById('canvas').appendChild(potassiumCanvasContainer);
                             potassiumChart = createChart(potassiumCanvas.id, potassiumData, timestamps_NPK, 'Potassium Value');
+                            originalChartData['potassiumChart'] = { data: potassiumData, labels: timestamps_NPK, label: 'Potassium Value' };
                             addDropdown(potassiumCanvasContainer, potassiumChart);
+                            addDatePicker(potassiumCanvasContainer, 'potassiumChart');
+                        }
+
+                        // Crop recommendations
+                        if (data.crop_recommendations && data.crop_recommendations.length > 0) {
+                            document.getElementById('cropSection').style.display = 'block';
+                            const tbody = document.getElementById('crop-recommendations');
+                            data.crop_recommendations.forEach(rec => {
+                                const row = document.createElement('tr');
+                                const c1 = document.createElement('td'); c1.innerText = rec.crop;
+                                const c2 = document.createElement('td'); c2.innerText = rec.accuracy.toFixed(2);
+                                row.appendChild(c1); row.appendChild(c2);
+                                tbody.appendChild(row);
+                            });
                         }
                     }
 
@@ -395,6 +434,63 @@
             rainfallChart.update();
             console.log('Updating rainfall chart with data:', data);
         }  
+
+                function reloadOriginalChart(canvasId) {
+            const orig = originalChartData[canvasId];
+            if (!orig) return;
+            const canvas = document.getElementById(canvasId);
+            const existing = Chart.getChart(canvas);
+            const type = existing ? existing.config.type : 'line';
+            if (existing) existing.destroy();
+            new Chart(canvas, {
+                type: type,
+                data: { labels: orig.labels, datasets: [{ label: orig.label, data: orig.data, fill: false, borderColor: 'rgb(75,192,192)', backgroundColor: type === 'bar' ? 'rgba(255,99,132,0.2)' : 'rgb(75,192,192)' }] },
+                options: { elements: { line: { tension: 0.1 } }, scales: { y: { beginAtZero: false }, x: { ticks: { maxRotation: 90, minRotation: 80 } } }, responsive: false, maintainAspectRatio: false }
+            });
+        }
+
+        function addDatePicker(container, canvasId) {
+            const channelId = "{{ channel_id }}";
+            const configs = {
+                'phChart':          { url: (s,e) => `${BASE_URL}/mychannel/ph_data/${channelId}/${s}/${e}/`,              dataKey: 'ph_values',         tsKey: 'timestamps',            label: 'PH Value' },
+                'rainfallChart':    { url: (s,e) => `${BASE_URL}/mychannel/rainfall_data/${channelId}/${s}/${e}/`,        dataKey: 'rainfall_values',    tsKey: 'rainfall_timestamps',   label: 'Rainfall Value' },
+                'humidChart':       { url: (s,e) => `${BASE_URL}/mychannel/humidity_temperature/${channelId}/${s}/${e}/`, dataKey: 'humid_values',       tsKey: 'timestamps_humid_temp', label: 'Humidity Value' },
+                'tempChart':        { url: (s,e) => `${BASE_URL}/mychannel/humidity_temperature/${channelId}/${s}/${e}/`, dataKey: 'temp_values',        tsKey: 'timestamps_humid_temp', label: 'Temperature Value' },
+                'nitrogenChart':    { url: (s,e) => `${BASE_URL}/mychannel/NPK/${channelId}/${s}/${e}/`,                 dataKey: 'nitrogen_values',    tsKey: 'timestamps_NPK',        label: 'Nitrogen Value' },
+                'phosphorousChart': { url: (s,e) => `${BASE_URL}/mychannel/NPK/${channelId}/${s}/${e}/`,                 dataKey: 'phosphorous_values', tsKey: 'timestamps_NPK',        label: 'Phosphorous Value' },
+                'potassiumChart':   { url: (s,e) => `${BASE_URL}/mychannel/NPK/${channelId}/${s}/${e}/`,                 dataKey: 'potassium_values',   tsKey: 'timestamps_NPK',        label: 'Potassium Value' },
+            };
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex align-items-center gap-2 mt-1 flex-wrap';
+            const fromLabel = document.createElement('small'); fromLabel.innerText = 'From:';
+            const startInput = document.createElement('input'); startInput.type = 'date'; startInput.className = 'form-control form-control-sm'; startInput.style.width = 'auto';
+            const toLabel = document.createElement('small'); toLabel.innerText = 'To:';
+            const endInput = document.createElement('input'); endInput.type = 'date'; endInput.className = 'form-control form-control-sm'; endInput.style.width = 'auto';
+            const applyBtn = document.createElement('button'); applyBtn.className = 'btn btn-sm btn-outline-secondary'; applyBtn.innerText = 'Apply';
+            applyBtn.addEventListener('click', function() {
+                if (!startInput.value && !endInput.value) { reloadOriginalChart(canvasId); return; }
+                if (!startInput.value || !endInput.value) return;
+                if (new Date(startInput.value) > new Date(endInput.value)) { alert('Start date cannot be later than end date.'); return; }
+                const cfg = configs[canvasId]; if (!cfg) return;
+                fetch(cfg.url(startInput.value, endInput.value), { headers: { 'ngrok-skip-browser-warning': 'true' } })
+                    .then(r => r.json())
+                    .then(d => {
+                        const canvas = document.getElementById(canvasId);
+                        const existing = Chart.getChart(canvas);
+                        const type = existing ? existing.config.type : 'line';
+                        if (existing) existing.destroy();
+                        new Chart(canvas, { type, data: { labels: d[cfg.tsKey] || [], datasets: [{ label: cfg.label, data: d[cfg.dataKey] || [], fill: false, borderColor: 'rgb(75,192,192)', backgroundColor: type === 'bar' ? 'rgba(255,99,132,0.2)' : 'rgb(75,192,192)' }] }, options: { elements: { line: { tension: 0.1 } }, scales: { y: { beginAtZero: false }, x: { ticks: { maxRotation: 90, minRotation: 80 } } }, responsive: false, maintainAspectRatio: false } });
+                    });
+            });
+            const clearBtn = document.createElement('button'); clearBtn.className = 'btn btn-sm btn-outline-danger ms-1'; clearBtn.innerText = 'Clear';
+            clearBtn.addEventListener('click', function() {
+                startInput.value = ''; endInput.value = '';
+                reloadOriginalChart(canvasId);
+            });
+            wrapper.append(fromLabel, startInput, toLabel, endInput, applyBtn, clearBtn);
+            container.appendChild(wrapper);
+        }
+
     </script>
 </body>
 </html>
