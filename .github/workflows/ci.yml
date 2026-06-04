@@ -90,6 +90,6 @@ jobs:
 
       - name: Build and push image
         run: |
-          IMAGE=registry.digitalocean.com/${{ secrets.DOCR_REGISTRY }}/${{ github.event.repository.name }}:${{ github.sha }}
+          IMAGE=registry.digitalocean.com/${{ secrets.DOCR_REGISTRY }}/plantlink-mobile:${{ github.sha }}
           docker build -t $IMAGE .
           docker push $IMAGE
