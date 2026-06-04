@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:plflutter/screens/viewchannel_page.dart'; // import ViewChannel() page 
+import 'package:plflutter/config.dart';
 
 class ManageSensorsPage extends StatefulWidget {
-  const ManageSensorsPage({Key? key}) : super(key: key);
+  const ManageSensorsPage({super.key});
 
   @override
   _ManageSensorsPageState createState() => _ManageSensorsPageState();
@@ -20,7 +21,7 @@ class _ManageSensorsPageState extends State<ManageSensorsPage> {
   }
 
   Future<Map<String, dynamic>> _fetchSensors() async {
-    const url = 'http://10.0.2.2:8000/sensor/';
+    final url = '$baseUrl/sensor/';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {

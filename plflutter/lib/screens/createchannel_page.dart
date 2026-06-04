@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:plflutter/screens/location_dropdown.dart';
+import 'package:plflutter/config.dart'; 
 
 
 class CreateChannel extends StatelessWidget {
@@ -49,7 +50,7 @@ class _ChannelFormState extends State<ChannelForm> {
       _isSubmitting = true; // Disable the button
     });
 
-    const String apiUrl = "http://10.0.2.2:8000/mychannel/create/";
+    final String apiUrl = '$baseUrl/mychannel/create/';
 
     try {
       final response = await http.post(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:plflutter/screens/location_dropdown.dart';
+import 'package:plflutter/config.dart';
 
 class EditChannelPage extends StatefulWidget {
   final Map<String, dynamic> channel;
@@ -44,7 +45,7 @@ class _EditChannelPageState extends State<EditChannelPage> {
 
     try {
       final response = await http.put(
-        Uri.parse("http://10.0.2.2:8000/mychannel/${widget.channel['_id']}/edit"),
+        Uri.parse('$baseUrl/mychannel/${widget.channel["_id"]}/edit'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'channel_name': _nameController.text.trim(),
@@ -75,7 +76,7 @@ class _EditChannelPageState extends State<EditChannelPage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Connection error. Please try again.'),
           backgroundColor: Colors.red,
         ),

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:plflutter/config.dart'; 
 
 class ChannelService {
-  static const String _baseChannelUrl = "http://10.0.2.2:8000/mychannel/api/channels/";
-  static const String _baseStatsUrl = "http://10.0.2.2:8000/mychannel/stats/";
+  static final String _baseChannelUrl = '$baseUrl/mychannel/api/channels/';
+  static final String _baseStatsUrl = '$baseUrl/mychannel/stats/';
 
   Future<String> _getUserId() async {
     final prefs = await SharedPreferences.getInstance();

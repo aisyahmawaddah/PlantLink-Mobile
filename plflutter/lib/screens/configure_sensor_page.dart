@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:plflutter/screens/sensor_service.dart';
-import 'package:plflutter/screens/dashboard_page.dart';
 
 class ConfigureSensorPage extends StatefulWidget {
   final String channelId;

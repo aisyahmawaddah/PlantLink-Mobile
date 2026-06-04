@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:plflutter/config.dart';
 
 class DeleteChannelDialog extends StatefulWidget {
   final String channelId;
@@ -24,7 +25,7 @@ class _DeleteChannelDialogState extends State<DeleteChannelDialog> {
   Future<void> _deleteChannel() async {
     setState(() => _isLoading = true);
 
-    const String apiUrl = "http://10.0.2.2:8000/mychannel/delete/";
+    final String apiUrl = '$baseUrl/mychannel/delete/';
     try {
       final response = await http.delete(
         Uri.parse('$apiUrl${widget.channelId}'),

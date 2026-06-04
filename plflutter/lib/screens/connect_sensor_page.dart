@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:plflutter/screens/dashboard_page.dart';
 import 'package:plflutter/screens/sensor_service.dart';
+import 'package:plflutter/config.dart'; 
 
 class AddSensorScreen extends StatefulWidget {
   final String channelId;
@@ -73,7 +74,7 @@ class _AddSensorScreenState extends State<AddSensorScreen> {
 
   Future<void> _connectSensor(String apiKey) async {
     try {
-      final url = Uri.parse('http://10.0.2.2:8000/mychannel/${widget.channelId}/add_sensor');
+      final url = Uri.parse('$baseUrl/mychannel/${widget.channelId}/add_sensor');
       final response = await http.post(url, body: {'apiKey': apiKey});
 
             if (response.statusCode == 200 || response.statusCode == 302) {

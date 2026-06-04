@@ -117,11 +117,11 @@ class _HomePageState extends State<HomePage> {
                           width: double.infinity,
                           fit: BoxFit.cover,
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(16),
+                        const Padding(
+                          padding: EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
                                 'Track Your Crop Sensor',
                                 style: TextStyle(
@@ -146,31 +146,31 @@ class _HomePageState extends State<HomePage> {
             ),
 
             // Feature cards
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Features',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _FeatureCard(
                     icon: Icons.sensors,
-                    color: const Color(0xFF4CAF50),
+                    color: Color(0xFF4CAF50),
                     title: 'Monitor Sensors',
                     subtitle: 'Real-time soil data from connected sensors',
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _FeatureCard(
                     icon: Icons.bar_chart,
-                    color: const Color(0xFF1565C0),
+                    color: Color(0xFF1565C0),
                     title: 'Visualize Data',
                     subtitle: 'Charts for pH, humidity, temperature, NPK & rainfall',
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   _FeatureCard(
                     icon: Icons.eco,
                     color: Colors.orange,

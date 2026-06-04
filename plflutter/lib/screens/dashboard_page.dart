@@ -8,6 +8,7 @@ import 'package:plflutter/screens/configure_sensor_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:plflutter/screens/crop_recommendations_page.dart';
+import 'package:plflutter/config.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String channelId;
@@ -17,7 +18,6 @@ class DashboardScreen extends StatefulWidget {
   _DashboardScreenState createState() => _DashboardScreenState();
 }
 
-const String _baseUrl = 'https://rathe-Russell-proterandrous.ngrok-free.dev';
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late String channelId = widget.channelId;
@@ -107,7 +107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/mychannel/$channelId/get_dashboard_data/'),
+        Uri.parse('$baseUrl/mychannel/$channelId/get_dashboard_data/'),
       );
 
       if (response.statusCode == 200) {
@@ -172,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       switch (group) {
         case 'ph':
-          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/ph_data/$channelId/$s/$e/'));
+          final r = await http.get(Uri.parse('$baseUrl/mychannel/ph_data/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
@@ -182,7 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
           break;
         case 'rainfall':
-          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/rainfall_data/$channelId/$s/$e/'));
+          final r = await http.get(Uri.parse('$baseUrl/mychannel/rainfall_data/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
@@ -192,7 +192,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
           break;
         case 'humidity':
-          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/humidity_temperature/$channelId/$s/$e/'));
+          final r = await http.get(Uri.parse('$baseUrl/mychannel/humidity_temperature/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
@@ -202,7 +202,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
           break;
         case 'temperature':
-          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/humidity_temperature/$channelId/$s/$e/'));
+          final r = await http.get(Uri.parse('$baseUrl/mychannel/humidity_temperature/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
@@ -212,7 +212,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
           break;
         case 'nitrogen':
-          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/NPK/$channelId/$s/$e/'));
+          final r = await http.get(Uri.parse('$baseUrl/mychannel/NPK/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
@@ -222,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
           break;
         case 'phosphorous':
-          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/NPK/$channelId/$s/$e/'));
+          final r = await http.get(Uri.parse('$baseUrl/mychannel/NPK/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
@@ -232,7 +232,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }
           break;
         case 'potassium':
-          final r = await http.get(Uri.parse('http://10.0.2.2:8000/mychannel/NPK/$channelId/$s/$e/'));
+          final r = await http.get(Uri.parse('$baseUrl/mychannel/NPK/$channelId/$s/$e/'));
           if (r.statusCode == 200) {
             final d = jsonDecode(r.body);
             setState(() {
@@ -524,8 +524,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildChartSection(String title, List<FlSpot> spots, List<String> timestamps, String filterGroup) {
     String chartDataType = "";
-    if (title == "pH Level Chart") chartDataType = "ph";
-    else if (title == "Rainfall Chart") chartDataType = "rainfall";
+    if (title == "pH Level Chart") {
+      chartDataType = "ph";
+    } else if (title == "Rainfall Chart") chartDataType = "rainfall";
     else if (title == "Humidity Chart") chartDataType = "humidity";
     else if (title == "Temperature Chart") chartDataType = "temperature";
     else if (title == "Nitrogen Chart") chartDataType = "nitrogen";
@@ -844,7 +845,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }
                           if (shareMode == 'live') {
                             generatedEmbedCode =
-                                '$_baseUrl/mychannel/embed/channel/$channelId/$chartDataType/live/';
+                                '$baseUrl/mychannel/embed/channel/$channelId/$chartDataType/live/';
                             embedGenerated = true;
                           } else {
                             if (selectedStartDate == null) {
@@ -862,7 +863,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             final start = DateFormat('yyyy-MM-dd').format(selectedStartDate!);
                             final end = DateFormat('yyyy-MM-dd').format(selectedEndDate!);
                             generatedEmbedCode =
-                                '$_baseUrl/mychannel/embed/channel/$channelId/${chartDataType}Chart/$start/$end/';
+                                '$baseUrl/mychannel/embed/channel/$channelId/${chartDataType}Chart/$start/$end/';
                             embedGenerated = true;
                           }
                         });
@@ -929,7 +930,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _toggleApi(bool value) async {
     final action = value ? 'permit_API' : 'forbid_API';
-    final url = 'http://10.0.2.2:8000/mychannel/$channelId/$action/';
+    final url = '$baseUrl/mychannel/$channelId/$action/';
     try {
       final response = await http.post(
         Uri.parse(url),
@@ -946,7 +947,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> shareChannel() async {
-    final url = 'http://10.0.2.2:8000/mychannel/$channelId/share';
+    final url = '$baseUrl/mychannel/$channelId/share';
     try {
       final response = await http.post(
         Uri.parse(url),
@@ -976,11 +977,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       String startDate, String endDate, String chartType, {bool isLive = false}) async {
     final String url;
     if (isLive) {
-      url = 'http://10.0.2.2:8000/mychannel/$channelId/share_chart/$chartDataType/live/';
+      url = '$baseUrl/mychannel/$channelId/share_chart/$chartDataType/live/';
     } else {
       final String formattedStartDate = _formatDateForApi(startDate);
       final String formattedEndDate = _formatDateForApi(endDate);
-      url = 'http://10.0.2.2:8000/mychannel/$channelId/share_chart/${chartDataType}Chart/$formattedStartDate/$formattedEndDate/';
+      url = '$baseUrl/mychannel/$channelId/share_chart/${chartDataType}Chart/$formattedStartDate/$formattedEndDate/';
     }
 
     final payload = {

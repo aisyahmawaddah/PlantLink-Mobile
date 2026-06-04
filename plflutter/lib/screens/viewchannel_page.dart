@@ -43,11 +43,11 @@ class ViewChannel extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
+      body: const Column(
         children: [
-          const BasePage(),
-          const SizedBox(height: 8),
-          const Expanded(child: ChannelsList()),
+          BasePage(),
+          SizedBox(height: 8),
+          Expanded(child: ChannelsList()),
         ],
       ),
     );
