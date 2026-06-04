@@ -203,6 +203,7 @@
         </div>
     </div>
     <script>
+        var originalChartData = {};
         // Define chart variables
         let phChart = null, humidChart = null, tempChart = null, rainfallChart = null, nitrogenChart = null, phosphorousChart = null, potassiumChart = null;
         document.addEventListener("DOMContentLoaded", function() {
@@ -221,8 +222,7 @@
             } else {
                 document.getElementById('empty_sensor').style.display = 'block';
             }
-        
-            const originalChartData = {};
+    
             fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
                 .then(response => response.json())
                 .then(data => {
@@ -538,20 +538,48 @@
             shareButton.setAttribute('data-bs-target', '#shareChartModal');
             shareButton.setAttribute('data-chart-type', chartType);
         
-            shareButton.addEventListener('click', function() {
-                const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
-                shareToPlantFeedButton.setAttribute('data-chart-type', chartType);
+                    shareButton.addEventListener('click', function() {
+                        // Reset form fields for this new chart
+                        document.getElementById('chartName').value = '';
+                        document.getElementById('startDate').value = '';
+                        document.getElementById('endDate').value = '';
+                        document.querySelector('input[name="shareType"][value="timeline"]').checked = true;
+                        document.getElementById('dateFields').style.display = 'block';
+                        document.getElementById('shareOptions').style.display = 'none';
+                        document.getElementById('embedCode').value = '';
+
+            const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
+            shareToPlantFeedButton.setAttribute('data-chart-type', chartType);
         
                 const form = document.getElementById('shareChartForm');
                 form.addEventListener('submit', function(event) {
                     event.preventDefault();
-                    const chartName = document.getElementById('chartName').value;
+                    const chartName = document.getElementById('chartName').value.trim();
                     const shareType = document.querySelector('input[name="shareType"]:checked').value;
                     const startDate = document.getElementById('startDate').value;
                     const endDate = document.getElementById('endDate').value;
                 
-                    const shareOptions = document.getElementById('shareOptions');
-                    shareOptions.style.display = 'block';
+                    if (!chartName) {
+                        alert('Chart name cannot be empty.');
+                        return;
+                    }
+                    if (shareType !== 'live') {
+                        if (!startDate) {
+                            alert('Start date cannot be empty.');
+                            return;
+                        }
+                        if (!endDate) {
+                            alert('End date cannot be empty.');
+                            return;
+                        }
+                        if (new Date(startDate) > new Date(endDate)) {
+                            alert('Start date cannot be later than end date.');
+                            return;
+                        }
+                    }
+
+    const shareOptions = document.getElementById('shareOptions');
+    shareOptions.style.display = 'block';
                 
                     const embedCode = document.getElementById('embedCode');
                     if (shareType === 'live') {
@@ -961,7 +989,7 @@
             apiSwitch.addEventListener('change', function () {
                 const initialState = this.checked;
                 let url = `/mychannel/${channelId}/`;
-                url += initialState ? 'permit_API' : 'forbid_API';
+                url += initialState ? 'permit_API/' : 'forbid_API/';
 
                 fetch(url, {
                     method: 'POST',
