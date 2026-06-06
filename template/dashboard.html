@@ -238,6 +238,14 @@
                     document.getElementById('chart-spinner-container').style.display = 'none';
                     document.getElementById('table-spinner-container').style.display = 'none';
         
+                    if (data.channel_already_shared) {
+                       const btn = document.getElementById('shareChannel');
+                       btn.disabled = true;
+                       btn.innerText = 'Channel Shared to PlantFeed';
+                       btn.classList.remove('btn-create');
+                       btn.classList.add('btn-secondary');
+                    }
+
                     // Extract data for charts and table
                     const phData = data.ph_values || [];
                     const timestamps = data.timestamps || [];
@@ -617,10 +625,9 @@
                     if (data.success) {
                         alert('Successfully shared channel to PlantFeed');
                         shareChannelToPlantfeed.disabled = true;
-                        shareChannelToPlantfeed.innerText = 'Already Shared';
+                        shareChannelToPlantfeed.innerText = 'Channel Shared to PlantFeed';
                         shareChannelToPlantfeed.classList.remove('btn-create');
                         shareChannelToPlantfeed.classList.add('btn-secondary');
-                        localStorage.setItem('channelShared_{{ channel_id }}', 'true');
                     } else {
                         alert('Failed to share channel to PlantFeed');
                     }

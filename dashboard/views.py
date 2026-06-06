@@ -548,6 +548,7 @@ def getDashboardData(request, channel_id):
                 "description": channel.get('description', ''),      
                 "location": channel.get('location', ''),            
                 "allow_api": channel.get('allow_API', ''),          
+                "channel_already_shared": channel.get('shared_to_plantfeed', False),
                 "ph_values": ph_values,
                 "timestamps": timestamps,  # Ensure alignment
                 "rainfall_values": rainfall_values,
@@ -710,6 +711,7 @@ def share_channel(request, channel_id):
                     headers=headers
                 )
                 if response.status_code == 200:
+                    collection.update_one({"_id": _id}, {"$set": {"shared_to_plantfeed": True}})
                     return JsonResponse({"success": "Channel successfully sent to PlantFeed"}, status=200)
                 else:
                     return JsonResponse({"error": f"Failed to share channel. PlantFeed Response: {response.text}"}, status=response.status_code)

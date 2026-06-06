@@ -82,7 +82,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _loadPlantfeedUserId();
     fetchSensorData();
-    _checkIfAlreadyShared();
   }
 
   Future<void> _loadPlantfeedUserId() async {
@@ -140,6 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           description = data['description'] ?? '';
           location = data['location'] ?? '';
           allowApi = (data['allow_api'] ?? '') == 'permit';
+          _channelAlreadyShared = data['channel_already_shared'] ?? false;
           cropRecommendations = List<Map<String, dynamic>>.from(
             data['crop_recommendations'] ?? [],
           );
@@ -158,12 +158,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() => isLoading = false);
       debugPrint('Error fetching data: $e');
     }
-  }
-
-  Future<void> _checkIfAlreadyShared() async {
-    final prefs = await SharedPreferences.getInstance();
-    final shared = prefs.getBool('channelShared_$channelId') ?? false;
-    if (shared) setState(() => _channelAlreadyShared = true);
   }
 
   Future<void> _applyDateFilter(String group, DateTime start, DateTime end) async {
@@ -958,9 +952,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final responseData = jsonDecode(response.body);
         if (responseData["success"] != null) {
            _showDialog("Channel Shared", responseData["success"]);
-           // ← ADD THESE TWO LINES
-           final prefs = await SharedPreferences.getInstance();
-           await prefs.setBool('channelShared_$channelId', true);
            setState(() => _channelAlreadyShared = true);
          } else {
           _showDialog("Error", "Failed to share the channel.");
