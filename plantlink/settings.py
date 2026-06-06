@@ -12,7 +12,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from corsheaders.defaults import default_headers
+
+load_dotenv()
+
 CORS_ALLOW_HEADERS = list(default_headers) + ['ngrok-skip-browser-warning']
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,12 +32,16 @@ SECRET_KEY = 'django-insecure-!opbfn912_&m9qly*xf^5s-x00*999!@q=as8ima-$-cqze=p_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.100', '127.0.0.1', '10.0.2.2', 'localhost', '52.64.72.29', '27.125.250.42', 'rathe-russell-proterandrous.ngrok-free.dev', '172.20.10.2', '192.168.0.84']
+PLANTLINK_NGROK_URL = os.environ.get('PLANTLINK_NGROK_URL', 'http://localhost:8000')
+PLANTFEED_BASE_URL = os.environ.get('PLANTFEED_BASE_URL', 'http://localhost:8001')
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://rathe-russell-proterandrous.ngrok-free.dev',
-    'http://rathe-russell-proterandrous.ngrok-free.dev',
-]
+ALLOWED_HOSTS = ['127.0.0.1', '10.0.2.2', 'localhost', '52.64.72.29',
+                 '27.125.250.42', '172.20.10.2', '192.168.0.84', '192.168.1.100',
+                 PLANTLINK_NGROK_URL.replace('https://', '').replace('http://', '')]
+
+PLANTFEED_BASE_URL = os.environ.get('PLANTFEED_BASE_URL', 'http://localhost:8001')
+
+CSRF_TRUSTED_ORIGINS = [PLANTLINK_NGROK_URL]
 
 CORS_ALLOW_ALL_ORIGINS = True
 

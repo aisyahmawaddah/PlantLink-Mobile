@@ -4,7 +4,8 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import requests
 
-PLANTFEED_LOGIN_URL = "https://kourtney-bottlelike-earthly.ngrok-free.dev/plantlink/Login/"
+from django.conf import settings
+PLANTFEED_LOGIN_URL = f"{settings.PLANTFEED_BASE_URL}/plantlink/Login/"
 
 @csrf_exempt
 def home(request):
