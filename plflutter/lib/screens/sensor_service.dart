@@ -6,9 +6,11 @@ class SensorService {
   Future<Map<String, dynamic>> fetchSensors(String channelId) async {
     final url = Uri.parse('$baseUrl/mychannel/$channelId/manage_sensor');
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: {'ngrok-skip-browser-warning': 'true'});
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 400) {
+        return {"channel_id": channelId, "sensors": [], "API_KEY_VALUE": null};
       } else {
         throw Exception('Failed to load sensors. Status code: ${response.statusCode}');
       }

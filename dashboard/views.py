@@ -1284,7 +1284,19 @@ def manage_sensor(request, channel_id):
             sensor_list = []
 
             if not sensor_api:
-                return JsonResponse({"error": "No API key set for this channel"}, status=400)
+                if 'text/html' in request.headers.get('Accept', ''):
+                    return render(request, 'conf_sensor.html', {
+                        "channel_id": channel_id,
+                        "sensor": [],
+                        "API_KEY_VALUE": "",
+                        "message": "",
+                        "error": "No API key set yet. Please add a sensor first.",
+                    })
+                return JsonResponse({
+                    "channel_id": channel_id,
+                    "sensors": [],
+                    "API_KEY_VALUE": None
+                }, status=200)
             else:
                 # Fetch data from different sensor collections
                 sensors = [
