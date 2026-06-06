@@ -17,6 +17,7 @@ import pytz
 from concurrent.futures import ThreadPoolExecutor   # add this
 import time                                         # add this (may already be there)
 from django.shortcuts import render
+from django.conf import settings
 
 
 def index(request):
@@ -651,7 +652,8 @@ def render_embed_code(request, channel_id):
                     "channel_id": channel_id,
                     "API": API_KEY,
                     "graph_count": graph_count,
-                    "soil_location":soil_location
+                    "soil_location":soil_location,
+                    "plantlink_base_url": settings.PLANTLINK_NGROK_URL,
                 }
 
                 return render(request, 'embed_dashboard.html', context)
@@ -663,11 +665,11 @@ def render_embed_code(request, channel_id):
         print("Error connecting to MongoDB.")
     
 # DECLARE PLANTFEED URL HERE
-PLANTFEED_SHARING_URL = "https://kourtney-bottlelike-earthly.ngrok-free.dev/"
-PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"group/PlantLink-Graph-API"
+PLANTFEED_SHARING_URL = settings.PLANTFEED_BASE_URL + '/'
+PLANTFEED_SHARING_API_PATH = PLANTFEED_SHARING_URL + "group/PlantLink-Graph-API"
 
 # DECLARE PLANTLINK URL HERE
-PLANTLINK_BASE_URL = "https://rathe-russell-proterandrous.ngrok-free.dev"
+PLANTLINK_BASE_URL = settings.PLANTLINK_NGROK_URL
 
 @csrf_exempt
 def share_channel(request, channel_id):
@@ -869,6 +871,7 @@ def embed_live_chart(request, channel_id, chart_type):
         'end_date': 'all',
         'API': channel.get('API_KEY', ''),
         'is_live': True,
+        'plantlink_base_url': settings.PLANTLINK_NGROK_URL, 
     })
 
 
@@ -895,7 +898,8 @@ def render_chart(request, channel_id, start_date, end_date, template_name):
         "API": channel.get('API_KEY', ''),
         "graph_count": 1,
         "start_date": start_date,
-        "end_date": end_date
+        "end_date": end_date,
+        "plantlink_base_url": settings.PLANTLINK_NGROK_URL, 
     }
     
     return render(request, template_name, context)

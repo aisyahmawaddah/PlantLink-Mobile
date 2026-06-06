@@ -64,8 +64,8 @@
             document.getElementById('download').style.display = 'none';
 
             const url = isLive
-                ? `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/NPK/${channelId}/all/`
-                : `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
+                ? `{{ plantlink_base_url }}/mychannel/NPK/${channelId}/all/`
+                : `{{ plantlink_base_url }}/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
 
             fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
                 .then(response => response.json())
@@ -118,7 +118,7 @@
                 const e = document.getElementById('endDateInput').value;
                 if (!s || !e) { alert('Please select both start and end dates.'); return; }
                 if (new Date(s) > new Date(e)) { alert('Start date cannot be later than end date.'); return; }
-                fetch(`https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/NPK/${channelId}/${s}/${e}/`, {
+                fetch(`{{ plantlink_base_url }}/mychannel/NPK/${channelId}/${s}/${e}/`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 })
                 .then(r => r.json())
@@ -133,8 +133,8 @@
                 document.getElementById('startDateInput').value = '';
                 document.getElementById('endDateInput').value = '';
                 const clearUrl = isLive
-                    ? `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/NPK/${channelId}/all/`
-                    : `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
+                    ? `{{ plantlink_base_url }}/mychannel/NPK/${channelId}/all/`
+                    : `{{ plantlink_base_url }}/mychannel/NPK/${channelId}/${startDate}/${endDate}/`;
                 fetch(clearUrl, { headers: { 'ngrok-skip-browser-warning': 'true' } })
                 .then(r => r.json())
                 .then(data => {

@@ -48,7 +48,7 @@
         let phChart = null, humidChart = null, tempChart = null, rainfallChart = null, nitrogenChart = null, phosphorousChart = null, potassiumChart = null;
         
         const originalChartData = {};
-        const BASE_URL = 'https://rathe-russell-proterandrous.ngrok-free.dev';
+        const BASE_URL = '{{ plantlink_base_url }}';
 
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}"; 
@@ -67,7 +67,7 @@
                 document.getElementById('empty_sensor').style.display = 'block';
             }
 
-            fetch(`https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/${channelId}/get_dashboard_data/`, {
+            fetch(`{{ plantlink_base_url }}/mychannel/${channelId}/get_dashboard_data/`, {
                 headers: { 'ngrok-skip-browser-warning': 'true' }
             })
                 .then(response => response.json())

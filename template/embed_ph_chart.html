@@ -68,8 +68,8 @@
             document.getElementById('download').style.display = 'none';
             const isLive = "{{ is_live }}" === "True";
             const url = isLive
-                ? `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelId}/all/`
-                : `https://rathe-russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelId}/${startDate}/${endDate}/`;
+                ? `{{ plantlink_base_url }}/mychannel/ph_data/${channelId}/all/`
+                : `{{ plantlink_base_url }}/mychannel/ph_data/${channelId}/${startDate}/${endDate}/`;
 
             fetch(url, {
                 headers: { 'ngrok-skip-browser-warning': 'true' }
@@ -180,7 +180,7 @@
             const e = document.getElementById('endDateInput').value;
             if (!s || !e) return;
             if (new Date(s) > new Date(e)) { alert('Start date cannot be later than end date.'); return; }
-            fetch(`https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelIdForFilter}/${s}/${e}/`, { headers: { 'ngrok-skip-browser-warning': 'true' } })
+            fetch(`{{ plantlink_base_url }}/mychannel/ph_data/${channelIdForFilter}/${s}/${e}/`, { headers: { 'ngrok-skip-browser-warning': 'true' } })
                 .then(r => r.json())
                 .then(data => {
                     phData = data.ph_values || [];
@@ -194,8 +194,8 @@
             document.getElementById('endDateInput').value = '';
             // Reload original data
             const url = isLiveChart
-                ? `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelIdForFilter}/all/`
-                : `https://rathe-Russell-proterandrous.ngrok-free.dev/mychannel/ph_data/${channelIdForFilter}/${"{{ start_date }}"}/${"{{ end_date }}"}/`;
+                ? `{{ plantlink_base_url }}/mychannel/ph_data/${channelIdForFilter}/all/`
+                : `{{ plantlink_base_url }}/mychannel/ph_data/${channelIdForFilter}/${"{{ start_date }}"}/${"{{ end_date }}"}/`;
             fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } })
                 .then(r => r.json())
                 .then(data => {
