@@ -138,6 +138,7 @@ def view_channel_sensor(request, channel_id):
         "allow_api": channel_details["allow_api"],
         "soil_location": channel_details["soil_location"],
         "privacy": channel_details["privacy"],
+        'plantlink_base_url': settings.PLANTLINK_NGROK_URL,
     }
     return render(request, 'dashboard.html', context)
 

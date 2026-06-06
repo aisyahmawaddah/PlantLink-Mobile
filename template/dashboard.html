@@ -591,9 +591,9 @@
                 
                     const embedCode = document.getElementById('embedCode');
                     if (shareType === 'live') {
-                        embedCode.value = `${window.location.origin}/mychannel/embed/channel/{{ channel_id }}/${chartType}/live/`;
+                        embedCode.value = `{{ plantlink_base_url }}/mychannel/embed/channel/{{ channel_id }}/${chartType}/live/`;
                     } else {
-                        embedCode.value = `${window.location.origin}/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
+                        embedCode.value = `{{ plantlink_base_url }}/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
                     }
                 
                     shareToPlantFeedButton.setAttribute('data-share-type', shareType);
@@ -737,7 +737,7 @@
 
                 shareTableOptions.style.display = 'block';
                 const embedTableCode = document.getElementById('embedTableCode');
-                embedTableCode.value = `${window.location.origin}/mychannel/embed/channel/{{ channel_id }}/cropTable/${tableStartDate}/${tableEndDate}/`;
+                embedTableCode.value = `{{ plantlink_base_url }}/mychannel/embed/channel/{{ channel_id }}/cropTable/${tableStartDate}/${tableEndDate}/`;
 
                 shareTableToPlantFeedButton.setAttribute('data-start-date', tableStartDate);
                 shareTableToPlantFeedButton.setAttribute('data-end-date', tableEndDate);
