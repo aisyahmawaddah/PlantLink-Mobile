@@ -26,6 +26,8 @@ spec:
           value: "plantlink.xyz,www.plantlink.xyz,129.212.209.21"
         - name: PLANTFEED_BASE_URL
           value: "http://plantfeed.xyz"
+        - name: PLANTLINK_NGROK_URL
+          value: "http://plantlink.xyz"
 ---
 apiVersion: v1
 kind: Service
