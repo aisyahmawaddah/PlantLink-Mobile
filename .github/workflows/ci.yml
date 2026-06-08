@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install django-cors-headers channels
+          pip install django-cors-headers channels python-dotenv
 
       - name: Run Django tests
         env:

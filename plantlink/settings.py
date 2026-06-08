@@ -37,6 +37,7 @@ PLANTFEED_BASE_URL = os.environ.get('PLANTFEED_BASE_URL', 'http://localhost:8001
 
 ALLOWED_HOSTS = ['127.0.0.1', '10.0.2.2', 'localhost', '52.64.72.29',
                  '27.125.250.42', '172.20.10.2', '192.168.0.84', '192.168.1.100',
+                 'plantlink.xyz', 'www.plantlink.xyz', '129.212.209.21',
                  PLANTLINK_NGROK_URL.replace('https://', '').replace('http://', '')]
 
 PLANTFEED_BASE_URL = os.environ.get('PLANTFEED_BASE_URL', 'http://localhost:8001')

@@ -10,7 +10,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt --ignore-requires-python \
     --no-deps psycopg2 || pip install psycopg2-binary
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install django-cors-headers channels
+RUN pip install django-cors-headers channels python-dotenv
 
 COPY . .
 
