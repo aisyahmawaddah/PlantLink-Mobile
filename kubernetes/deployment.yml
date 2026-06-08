@@ -23,11 +23,9 @@ spec:
         - name: DEBUG
           value: "False"
         - name: ALLOWED_HOSTS
-          value: "plantlink.xyz,www.plantlink.xyz"
-        - name: SECRET_KEY
-          value: "django-insecure-change-this-in-production"
-        - name: DEBUG
-          value: "False"
+          value: "plantlink.xyz,www.plantlink.xyz,129.212.209.21"
+        - name: PLANTFEED_BASE_URL
+          value: "http://plantfeed.xyz"
 ---
 apiVersion: v1
 kind: Service
