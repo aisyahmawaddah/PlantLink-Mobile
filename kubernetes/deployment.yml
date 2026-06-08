@@ -22,6 +22,12 @@ spec:
           value: "django-insecure-change-this-in-production"
         - name: DEBUG
           value: "False"
+        - name: ALLOWED_HOSTS
+          value: "plantlink.xyz,www.plantlink.xyz"
+        - name: SECRET_KEY
+          value: "django-insecure-change-this-in-production"
+        - name: DEBUG
+          value: "False"
 ---
 apiVersion: v1
 kind: Service
