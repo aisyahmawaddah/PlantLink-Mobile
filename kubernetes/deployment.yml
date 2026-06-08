@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plantlink-mobile
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plantlink-mobile
+  template:
+    metadata:
+      labels:
+        app: plantlink-mobile
+    spec:
+      containers:
+      - name: plantlink-mobile
+        image: registry.digitalocean.com/aisyahfyp-registry/plantlink-mobile:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: SECRET_KEY
+          value: "django-insecure-change-this-in-production"
+        - name: DEBUG
+          value: "False"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plantlink-mobile
+spec:
+  selector:
+    app: plantlink-mobile
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: LoadBalancer
