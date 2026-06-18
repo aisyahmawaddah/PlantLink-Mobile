@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:plflutter/screens/location_dropdown.dart';
 import 'package:plflutter/config.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 class CreateChannel extends StatelessWidget {
@@ -47,11 +48,15 @@ class _ChannelFormState extends State<ChannelForm> {
   // Submit form data to backend
   Future<void> submitForm() async {
     setState(() {
-      _isSubmitting = true; // Disable the button
+      _isSubmitting = true;
     });
-
+  
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userid') ?? '';
+    print('DEBUG: userId from prefs = "$userId"');
+  
     final String apiUrl = '$baseUrl/mychannel/create/';
-
+  
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -61,6 +66,7 @@ class _ChannelFormState extends State<ChannelForm> {
           'description': _description,
           'location': '${_selectedState ?? ''}, ${_selectedDistrict ?? ''}',
           'privacy': _selectedPrivacy,
+          'user_id': userId,
         }),
       );
 
@@ -68,7 +74,7 @@ class _ChannelFormState extends State<ChannelForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Channel created successfully!')),
         );
-        Navigator.pushNamed(context, '/channels'); // Navigate after success
+        Navigator.pop(context); // Navigate after success
       } else if (response.statusCode == 400) {
       // Handle duplicate channel name error
       final Map<String, dynamic> responseData = json.decode(response.body);

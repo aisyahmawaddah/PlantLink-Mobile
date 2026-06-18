@@ -839,7 +839,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }
                           if (shareMode == 'live') {
                             generatedEmbedCode =
-                                '$baseUrl/mychannel/embed/channel/$channelId/$chartDataType/live/';
+                                '$baseUrl/mychannel/embed/channel/$channelId/${chartDataType}Chart/live/';
                             embedGenerated = true;
                           } else {
                             if (selectedStartDate == null) {
@@ -951,7 +951,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData["success"] != null) {
-           _showDialog("Channel Shared", responseData["success"]);
+           _showDialog("Channel Shared", responseData["success"].toString());
            setState(() => _channelAlreadyShared = true);
          } else {
           _showDialog("Error", "Failed to share the channel.");
@@ -968,7 +968,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       String startDate, String endDate, String chartType, {bool isLive = false}) async {
     final String url;
     if (isLive) {
-      url = '$baseUrl/mychannel/$channelId/share_chart/$chartDataType/live/';
+      url = '$baseUrl/mychannel/$channelId/share_chart/${chartDataType}Chart/live/';
     } else {
       final String formattedStartDate = _formatDateForApi(startDate);
       final String formattedEndDate = _formatDateForApi(endDate);
@@ -995,7 +995,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             context: context,
             builder: (context) => AlertDialog(
               title: const Text("Chart Shared"),
-              content: Text(responseData["success"]),
+              content: const Text("Successfully shared the chart to PlantFeed"),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),

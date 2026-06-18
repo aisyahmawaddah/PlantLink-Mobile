@@ -266,7 +266,7 @@ def create_channel(request):
             "date_modified": formatted_date,
             "allow_API": "",
             "API_KEY": "",
-            "user_id": request.COOKIES.get('userid', ''),
+            "user_id": data.get('user_id') or request.COOKIES.get('userid', ''),
             "sensor": []
         }
         collection.insert_one(channel)
