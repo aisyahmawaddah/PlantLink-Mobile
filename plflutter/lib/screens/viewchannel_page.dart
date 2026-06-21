@@ -34,31 +34,12 @@ class _ViewChannelState extends State<ViewChannel> {
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Refresh',
-            onPressed: _refreshAll,
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 10),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, '/channels/create');
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text(
-                'Create',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF4CAF50),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              tooltip: 'Refresh',
+              onPressed: _refreshAll,
             ),
           ),
         ],
@@ -329,11 +310,36 @@ class _ChannelsListState extends State<ChannelsList> {
                       : SingleChildScrollView(
                           scrollDirection: Axis.vertical,
                           child: PaginatedDataTable(
-                            header: const Text(
-                              "Channels",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF4CAF50)),
+                            header: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "Channels",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4CAF50)),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(context, '/channels/create');
+                                  },
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text(
+                                    'Create',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF4CAF50),
+                                    foregroundColor: Colors.white,
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                  ),
+                                ),
+                              ],
                             ),
                             rowsPerPage: 6,
                             columns: const [
