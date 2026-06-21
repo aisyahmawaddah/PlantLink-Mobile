@@ -359,6 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildChartSection("Phosphorous Chart", _generateSpots(_filtP ?? phosphorousData),   _filtPTs ?? npkTimestamps,            'phosphorous'),
                     _buildChartSection("Potassium Chart",   _generateSpots(_filtK ?? potassiumData),     _filtKTs ?? npkTimestamps,            'potassium'),
                     const SizedBox(height: 20),
+                  ] else ...[
                     const SizedBox(height: 40),
                     Center(
                       child: Column(
