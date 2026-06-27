@@ -4,8 +4,23 @@ import 'package:plflutter/screens/editchannel_page.dart';
 import 'package:plflutter/screens/dashboard_page.dart';
 import 'package:plflutter/screens/fetch_channel.dart';
 
-class ViewChannel extends StatelessWidget {
+class ViewChannel extends StatefulWidget {
   const ViewChannel({super.key});
+
+  @override
+  State<ViewChannel> createState() => _ViewChannelState();
+}
+
+class _ViewChannelState extends State<ViewChannel> {
+  final GlobalKey<_BasePageState> _statsKey = GlobalKey<_BasePageState>();
+  final GlobalKey<_ChannelsListState> _listKey = GlobalKey<_ChannelsListState>();
+
+  Future<void> _refreshAll() async {
+    await Future.wait([
+      _statsKey.currentState?.fetchChannelStatistics() ?? Future.value(),
+      _listKey.currentState?._loadChannels() ?? Future.value(),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,33 +36,19 @@ class ViewChannel extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 10),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, '/channels/create');
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text(
-                'Create',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF4CAF50),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              tooltip: 'Refresh',
+              onPressed: _refreshAll,
             ),
           ),
         ],
       ),
-      body: const Column(
+      body: Column(
         children: [
-          BasePage(),
-          SizedBox(height: 8),
-          Expanded(child: ChannelsList()),
+          BasePage(key: _statsKey),
+          const SizedBox(height: 8),
+          Expanded(child: ChannelsList(key: _listKey)),
         ],
       ),
     );
@@ -309,11 +310,36 @@ class _ChannelsListState extends State<ChannelsList> {
                       : SingleChildScrollView(
                           scrollDirection: Axis.vertical,
                           child: PaginatedDataTable(
-                            header: const Text(
-                              "Channels",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF4CAF50)),
+                            header: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "Channels",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4CAF50)),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(context, '/channels/create');
+                                  },
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text(
+                                    'Create',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF4CAF50),
+                                    foregroundColor: Colors.white,
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                  ),
+                                ),
+                              ],
                             ),
                             rowsPerPage: 6,
                             columns: const [
