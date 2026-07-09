@@ -449,9 +449,7 @@ def getDashboardData(request, channel_id):
 
         if channel:
             API_KEY = channel.get('API_KEY', '')
-            if not API_KEY:
-                return JsonResponse({"success": False, "error": "No API_KEY found for the channel"})
-            
+
             ph_values = []
             timestamps = []
             rainfall_values = []
@@ -464,145 +462,147 @@ def getDashboardData(request, channel_id):
             timestamps_humid_temp = []
             timestamps_NPK = []
             updated_sensor_array = []
-            
-            # Fetch data from sensor:DHT11
-            db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
-            if db_humid_temp is not None and collection_humid_temp is not None:
-                humid_temp_data = collection_humid_temp.find_one({"API_KEY": API_KEY})
-                if humid_temp_data:
-                    updated_sensor_array.append({
-                        "sensor_id": str(humid_temp_data.get('_id')), 
-                        "sensor_type": "DHT11", 
-                        "sensor_data_count": len(humid_temp_data.get('sensor_data', []))
-                    })
-                    for data_point in humid_temp_data.get('sensor_data', []):
-                        humidity_value = data_point.get('humidity_value', '')
-                        temperature_value = data_point.get('temperature_value', '')
-                        
-                        humid_values.append(humidity_value)
-                        temp_values.append(temperature_value)
 
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                        timestamps_humid_temp.append(formatted_timestamp)
-            # Fetch data from sensor:NPK
-            db_NPK, collection_NPK = connect_to_mongodb('sensor', 'NPK')
-            if db_NPK is not None and collection_NPK is not None:
-                NPK_data = collection_NPK.find_one({"API_KEY": API_KEY})
-                if NPK_data:
-                    updated_sensor_array.append({
-                        "sensor_id": str(NPK_data.get('_id')), 
-                        "sensor_type": "NPK", 
-                        "sensor_data_count": len(NPK_data.get('sensor_data', []))
-                    })
-                    for data_point in NPK_data.get('sensor_data', []):
-                        nitrogen_value = data_point.get('nitrogen_value', '')
-                        phosphorous_value = data_point.get('phosphorous_value', '')
-                        potassium_value = data_point.get('potassium_value', '')
-                        
-                        nitrogen_values.append(nitrogen_value)
-                        phosphorous_values.append(phosphorous_value)
-                        potassium_values.append(potassium_value)
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                        timestamps_NPK.append(formatted_timestamp)
-            
-            # Fetch data from sensor:PHSensor
-            db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
-            if db_ph is not None and collection_ph is not None:
-                ph_data = collection_ph.find_one({"API_KEY": API_KEY})
-                if ph_data:
-                    updated_sensor_array.append({
-                        "sensor_id": str(ph_data.get('_id')), 
-                        "sensor_type": "PHSensor", 
-                        "sensor_data_count": len(ph_data.get('sensor_data', []))
-                    })
-                    for data_point in ph_data.get('sensor_data', []):
-                        ph_values.append(data_point.get('ph_value', ''))
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                        timestamps.append(formatted_timestamp)
-            # Fetch data from sensor:rainfallSensor
-            db_rainfall, collection_rainfall = connect_to_mongodb('sensor', 'rainfall')
-            if db_rainfall is not None and collection_rainfall is not None:
-                rainfall_data = collection_rainfall.find_one({"API_KEY": API_KEY})
-                if rainfall_data:
-                    updated_sensor_array.append({
-                        "sensor_id": str(rainfall_data.get('_id')), 
-                        "sensor_type": "DHT11", 
-                        "sensor_data_count": len(rainfall_data.get('sensor_data', []))
-                    })
-                    for data_point in rainfall_data.get('sensor_data', []):
-                        rainfall_values.append(data_point.get('rainfall_value', ''))
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                        rainfall_timestamps.append(formatted_timestamp)
-            
-            # Update the sensor array in the channel document
-            collection.update_one(
-                {"_id": _id},
-                {"$set": {"sensor": updated_sensor_array}}
-            )
+            if API_KEY:
+                # Fetch data from sensor:DHT11
+                db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                if db_humid_temp is not None and collection_humid_temp is not None:
+                    humid_temp_data = collection_humid_temp.find_one({"API_KEY": API_KEY})
+                    if humid_temp_data:
+                        updated_sensor_array.append({
+                            "sensor_id": str(humid_temp_data.get('_id')),
+                            "sensor_type": "DHT11",
+                            "sensor_data_count": len(humid_temp_data.get('sensor_data', []))
+                        })
+                        for data_point in humid_temp_data.get('sensor_data', []):
+                            humidity_value = data_point.get('humidity_value', '')
+                            temperature_value = data_point.get('temperature_value', '')
+
+                            humid_values.append(humidity_value)
+                            temp_values.append(temperature_value)
+
+                            timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            timestamps_humid_temp.append(formatted_timestamp)
+
+                # Fetch data from sensor:NPK
+                db_NPK, collection_NPK = connect_to_mongodb('sensor', 'NPK')
+                if db_NPK is not None and collection_NPK is not None:
+                    NPK_data = collection_NPK.find_one({"API_KEY": API_KEY})
+                    if NPK_data:
+                        updated_sensor_array.append({
+                            "sensor_id": str(NPK_data.get('_id')),
+                            "sensor_type": "NPK",
+                            "sensor_data_count": len(NPK_data.get('sensor_data', []))
+                        })
+                        for data_point in NPK_data.get('sensor_data', []):
+                            nitrogen_value = data_point.get('nitrogen_value', '')
+                            phosphorous_value = data_point.get('phosphorous_value', '')
+                            potassium_value = data_point.get('potassium_value', '')
+
+                            nitrogen_values.append(nitrogen_value)
+                            phosphorous_values.append(phosphorous_value)
+                            potassium_values.append(potassium_value)
+                            timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            timestamps_NPK.append(formatted_timestamp)
+
+                # Fetch data from sensor:PHSensor
+                db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+                if db_ph is not None and collection_ph is not None:
+                    ph_data = collection_ph.find_one({"API_KEY": API_KEY})
+                    if ph_data:
+                        updated_sensor_array.append({
+                            "sensor_id": str(ph_data.get('_id')),
+                            "sensor_type": "PHSensor",
+                            "sensor_data_count": len(ph_data.get('sensor_data', []))
+                        })
+                        for data_point in ph_data.get('sensor_data', []):
+                            ph_values.append(data_point.get('ph_value', ''))
+                            timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            timestamps.append(formatted_timestamp)
+
+                # Fetch data from sensor:rainfallSensor
+                db_rainfall, collection_rainfall = connect_to_mongodb('sensor', 'rainfall')
+                if db_rainfall is not None and collection_rainfall is not None:
+                    rainfall_data = collection_rainfall.find_one({"API_KEY": API_KEY})
+                    if rainfall_data:
+                        updated_sensor_array.append({
+                            "sensor_id": str(rainfall_data.get('_id')),
+                            "sensor_type": "DHT11",
+                            "sensor_data_count": len(rainfall_data.get('sensor_data', []))
+                        })
+                        for data_point in rainfall_data.get('sensor_data', []):
+                            rainfall_values.append(data_point.get('rainfall_value', ''))
+                            timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            rainfall_timestamps.append(formatted_timestamp)
+
+                # Update the sensor array in the channel document
+                collection.update_one(
+                    {"_id": _id},
+                    {"$set": {"sensor": updated_sensor_array}}
+                )
 
             context = {
                 "channel_id": channel_id,
-                "channel_name": channel.get('channel_name', ''),   
-                "description": channel.get('description', ''),      
-                "location": channel.get('location', ''),            
-                "allow_api": channel.get('allow_API', ''),          
+                "channel_name": channel.get('channel_name', ''),
+                "description": channel.get('description', ''),
+                "location": channel.get('location', ''),
+                "allow_api": channel.get('allow_API', ''),
                 "channel_already_shared": channel.get('shared_to_plantfeed', False),
                 "ph_values": ph_values,
-                "timestamps": timestamps,  # Ensure alignment
+                "timestamps": timestamps,
                 "rainfall_values": rainfall_values,
-                "rainfall_timestamps": rainfall_timestamps,  # Ensure alignment
+                "rainfall_timestamps": rainfall_timestamps,
                 "humid_values": humid_values,
                 "temp_values": temp_values,
-                "timestamps_humid_temp": timestamps_humid_temp,  # Ensure alignment
+                "timestamps_humid_temp": timestamps_humid_temp,
                 "nitrogen_values": nitrogen_values,
                 "phosphorous_values": phosphorous_values,
                 "potassium_values": potassium_values,
-                "timestamps_NPK": timestamps_NPK,  # Ensure alignment
+                "timestamps_NPK": timestamps_NPK,
                 "API": API_KEY,
             }
-            if humid_values or ph_values or rainfall_values or nitrogen_values or potassium_values or phosphorous_value or temp_values:
+            if humid_values or ph_values or rainfall_values or nitrogen_values or potassium_values or phosphorous_values or temp_values:
                 model = load_trained_model()
                 if model:
                     # Prepare input data for model prediction
                     input_data = {
-                        'N': float(nitrogen_values[-1]) if nitrogen_values else 0.0,  
+                        'N': float(nitrogen_values[-1]) if nitrogen_values else 0.0,
                         'P': float(potassium_values[-1]) if potassium_values else 0.0,
                         'K': float(phosphorous_values[-1]) if phosphorous_values else 0.0,
-                        'temperature': float(temp_values[-1]) if temp_values else 0.0,  
-                        'humidity': float(humid_values[-1]) if humid_values else 0.0,  
-                        'ph': float(ph_values[-1]) if ph_values else 0.0,  
-                        'rainfall':float(rainfall_values[-1]) if rainfall_values else 0.0,   
+                        'temperature': float(temp_values[-1]) if temp_values else 0.0,
+                        'humidity': float(humid_values[-1]) if humid_values else 0.0,
+                        'ph': float(ph_values[-1]) if ph_values else 0.0,
+                        'rainfall': float(rainfall_values[-1]) if rainfall_values else 0.0,
                     }
 
                     input_df = pd.DataFrame([input_data])
 
                     # Make predictions using the model
                     prediction = model.predict(input_df)
-                    
+
                     probabilities = model.predict_proba(input_df)
-                    
+
                     labels = model.classes_
 
                     # Combine the labels with their probabilities and sort them by probability in descending order
                     crop_recommendations = [
-                        {"crop": label, "accuracy": prob * 100}  # Convert to percentage
+                        {"crop": label, "accuracy": prob * 100}
                         for label, prob in zip(labels, probabilities[0])
                     ]
                     crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
-                    # Add the crop recommendation to the context
                     context["crop_recommendations"] = crop_recommendations
 
             return JsonResponse(context)
-                
+
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
         print("Error connecting to MongoDB.")
-        return JsonResponse({"success": False, "error": "Database connection error"})    
+        return JsonResponse({"success": False, "error": "Database connection error"})
 # To view embedded code dashboard
 def render_embed_code(request, channel_id):
     _id = ObjectId(channel_id)
