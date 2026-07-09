@@ -342,7 +342,7 @@ def combined_post(request):
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
                             print("Sensor data added successfully.")
-                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
+                            aws_websocket_url = "wss://dy0671e7y3.execute-api.ap-southeast-2.amazonaws.com/production/"
                             message = {
                                 'action': 'sendMessage',
                                 'to': API_KEY,
@@ -404,7 +404,7 @@ def combined_post(request):
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
                             print("Sensor data added successfully.")
-                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
+                            aws_websocket_url = "wss://dy0671e7y3.execute-api.ap-southeast-2.amazonaws.com/production/"
                             message = {
                                 'action': 'sendMessage',
                                 'to': API_KEY,
@@ -459,7 +459,7 @@ def combined_post(request):
                     if existing_document:
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
-                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
+                            aws_websocket_url = "wss://dy0671e7y3.execute-api.ap-southeast-2.amazonaws.com/production/"
                             message = {
                                 'action': 'sendMessage',
                                 'to': API_KEY,
@@ -513,7 +513,7 @@ def combined_post(request):
                     if existing_document:
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
-                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
+                            aws_websocket_url = "wss://dy0671e7y3.execute-api.ap-southeast-2.amazonaws.com/production/"
                             message = {
                                 'action': 'sendMessage',
                                 'to': API_KEY,
